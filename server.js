@@ -13,7 +13,20 @@ const authRoutes = require('./routes/auth');
 const app = express();
 const port = 8080;
 
-app.use(bodyParser.urlencoded({extended: false}));
+
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'OPTIONS, GET, POST, PUT, PATCH, DELETE'
+  );
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
+
+
+// app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
 app.use('/auth', authRoutes);
 // app.use('/invoice', invoiceRoutes)
 
