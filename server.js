@@ -1,3 +1,6 @@
+//TEMP
+const productController = require('./controllers/product');
+
 // import crucial packages.
 const express = require('express');
 const mongoose = require('mongoose');
@@ -29,6 +32,10 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use('/auth', authRoutes);
 // app.use('/invoice', invoiceRoutes)
+
+app.post('/product', productController.addProduct)
+app.post('/delproduct', productController.delProduct)
+app.post('/modproduct', productController.modProduct)
 
 // route our app
 app.get('/', function(req, res) {
