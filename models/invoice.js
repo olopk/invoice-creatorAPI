@@ -11,7 +11,32 @@ const invoiceSchema = new Schema({
         required: true
     },
     customer: {
-        type: mongoose.ObjectId,
+        type: Schema.Types.ObjectId,
+        required: true
+    },
+    order: [
+        {
+            product:{
+                type: Schema.Types.ObjectId,
+                ref: 'Product',
+                required: true
+            },
+            quantity: {
+                type: Number,
+                required: true
+            },
+            unit_price:{
+                type: Number,
+                required: true
+            },
+            total_price:{
+                type: Number,
+                required: true
+            }
+        }
+    ],
+    total_price:{
+        type: Number,
         required: true
     }
 })

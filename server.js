@@ -1,5 +1,6 @@
 //TEMP
 const productController = require('./controllers/product');
+const invoiceController = require('./controllers/invoice');
 
 // import crucial packages.
 const express = require('express');
@@ -33,9 +34,9 @@ app.use(bodyParser.json());
 app.use('/auth', authRoutes);
 // app.use('/invoice', invoiceRoutes)
 
-app.post('/product', productController.addProduct)
-app.post('/delproduct', productController.delProduct)
-app.post('/modproduct', productController.modProduct)
+// app.post('/product', productController.addProduct)
+// app.post('/delproduct', productController.delProduct)
+app.post('/invoice', invoiceController.addInvoice)
 
 // route our app
 app.get('/', function(req, res) {
