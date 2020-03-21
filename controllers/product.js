@@ -12,6 +12,7 @@ exports.addProduct = (req,res,next) =>{
         }
         const product = new Product({
             name: req.body.name,
+            service: req.body.service,
             unit_price: req.body.unit_price,
             quantity: req.body.quantity
         });
@@ -77,6 +78,7 @@ exports.delProduct = (req,res,next) =>{
             const product = productArr[0];
 
             product.name = req.body.name;
+            product.service = req.body.service;
             product.unit_price = req.body.unit_price;
             product.quantity = req.body.quantity;
 
