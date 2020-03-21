@@ -54,7 +54,7 @@ exports.addInvoice = (req, res, next) => {
                 product
                 .save()
                 .then(res => {
-                    return res
+                    return res 
                 })
                 .catch(err => {
                     const error = new Error('Something is wrong with the Product save operation.')
