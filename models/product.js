@@ -6,11 +6,15 @@ const productSchema = new Schema({
         type: String,
         required: true
     },
-    service: {
-        type: Boolean,
-        required: true
-    },    
-    unit_price: {
+    brand:{
+        type: String,
+        required: false
+    },
+    model:{
+        type: String,
+        required: false
+    },   
+    price: {
         type: Number,
         required: true
     },

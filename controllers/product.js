@@ -12,8 +12,9 @@ exports.addProduct = (req,res,next) =>{
         }
         const product = new Product({
             name: req.body.name,
-            service: req.body.service,
-            unit_price: req.body.unit_price,
+            brand: req.body.brand,
+            model: req.body.model,
+            price: req.body.price,
             quantity: req.body.quantity
         });
 
@@ -78,8 +79,9 @@ exports.delProduct = (req,res,next) =>{
             const product = productArr[0];
 
             product.name = req.body.name;
-            product.service = req.body.service;
-            product.unit_price = req.body.unit_price;
+            product.brand = req.body.brand;
+            product.model = req.body.model;
+            product.price = req.body.price;
             product.quantity = req.body.quantity;
 
             return product.save()
