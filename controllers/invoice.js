@@ -6,6 +6,7 @@ const Customer = require('../models/customer');
 const productSave = (el) => {
     return new Promise((resolve, reject) => {
         if(el.product_id){
+            //TODO we need to find the product and minus its quantity.
             resolve( {
                 product: el.product_id,
                 quantity: el.quantity,
@@ -65,8 +66,6 @@ exports.addInvoice = (req, res, next) => {
         return order
     })
     .then(order => {
-        console.log('second custId', order)
-
         // Finally we are ready to preapre the Invoice document.
         const invoice = new Invoice({
             invoice_nr: req.body.invoice_nr,
@@ -74,10 +73,7 @@ exports.addInvoice = (req, res, next) => {
             customer: customerId,
             order: order,
             total_price: req.body.total_price
-        })
-    
-        console.log(invoice)
-    
+        })   
         return invoice.save()            
     })
     .then(result => {
@@ -91,6 +87,24 @@ exports.addInvoice = (req, res, next) => {
         }
         res.status(500).json({
             error: err.message
+        })
+    })
+}
+
+// TODO
+// exports.modInvoice = (req, res, next) => {}
+
+// TODO
+// exports.delInvoice = (req, res, next) => {}
+
+exports.getInvoices = (req, res, next) => {
+    Invoice
+    .find()
+    .populate('customer')
+    .populate('order.product')
+    .then(invoices =>{
+        res.status(200).json({
+            data: invoices
         })
     })
 }

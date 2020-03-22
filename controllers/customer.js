@@ -100,3 +100,13 @@ exports.delCustomer = (req,res,next) =>{
             })
         })
  }
+
+ exports.getCustomers = (req, res, next) => {
+    Customer
+    .find()
+    .then(customers =>{
+        res.status(200).json({
+            data: customers
+        })
+    })
+}

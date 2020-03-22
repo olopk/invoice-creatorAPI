@@ -102,3 +102,13 @@ exports.delProduct = (req,res,next) =>{
             })
         })
  }
+
+ exports.getProducts = (req, res, next) => {
+    Product
+    .find()
+    .then(products =>{
+        res.status(200).json({
+            data: products
+        })
+    })
+}

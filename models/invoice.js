@@ -8,10 +8,12 @@ const invoiceSchema = new Schema({
     },
     date: {
         type: Date,
+        default: Date.now,
         required: true
     },
     customer: {
         type: Schema.Types.ObjectId,
+        ref: 'Customer',
         required: true
     },
     order: [

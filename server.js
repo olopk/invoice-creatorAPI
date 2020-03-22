@@ -1,4 +1,5 @@
 //TEMP
+const customerController = require('./controllers/customer');
 const productController = require('./controllers/product');
 const invoiceController = require('./controllers/invoice');
 
@@ -37,6 +38,9 @@ app.use('/auth', authRoutes);
 // app.post('/product', productController.addProduct)
 // app.post('/delproduct', productController.delProduct)
 app.post('/invoice', invoiceController.addInvoice)
+app.get('/invoices', invoiceController.getInvoices)
+app.get('/products', productController.getProducts)
+app.get('/customers', customerController.getCustomers)
 
 // route our app
 app.get('/', function(req, res) {
