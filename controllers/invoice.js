@@ -103,8 +103,8 @@ exports.getInvoices = (req, res, next) => {
     .populate('customer')
     .populate('order.product')
     .then(invoices =>{
-        res.status(200).json({
-            data: invoices
-        })
+        res.status(200).json([
+            ...invoices
+        ])
     })
 }
