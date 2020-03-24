@@ -1,15 +1,15 @@
-//TEMP
-const customerController = require('./controllers/customer');
-const productController = require('./controllers/product');
-const invoiceController = require('./controllers/invoice');
-
 // import crucial packages.
 const express = require('express');
 const mongoose = require('mongoose');
 // package for parsing the incoming user data.
 const bodyParser = require('body-parser');
-// routes import
+// graphql
+const graphqlHttp = require('express-graphql');
+const graphqlSchema = require('./graphql/schema');
+const graphqlResolver = require('./graphql/resolvers');
 
+
+// routes import
 const authRoutes = require('./routes/auth');
 // const invoiceRoutes = require('./routes/invoice');
 
@@ -29,23 +29,13 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/graphql', graphqlHttp({
+  schema: graphqlSchema,
+  rootValue: graphqlResolver
+}))
 
-// app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
-app.use('/auth', authRoutes);
-// app.use('/invoice', invoiceRoutes)
-
-// app.post('/product', productController.addProduct)
-// app.post('/delproduct', productController.delProduct)
-app.post('/invoice', invoiceController.addInvoice)
-app.get('/invoices', invoiceController.getInvoices)
-app.get('/products', productController.getProducts)
-app.get('/customers', customerController.getCustomers)
-
-// route our app
-app.get('/', function(req, res) {
-  res.send('hello world!');
-});
+// app.use('/auth', authRoutes);
 
 // start the server
 mongoose
