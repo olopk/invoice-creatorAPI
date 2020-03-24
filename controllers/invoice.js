@@ -5,6 +5,11 @@ const Customer = require('../models/customer');
 
 const productSave = (el) => {
     return new Promise((resolve, reject) => {
+        if(!el.name || !el.quantity || !el.unit_price){
+            const error = new Error('product name, quantity and unit_price is required')
+            error.statusCode = 404;
+            throw error;
+        }
         if(el.product_id){
             //TODO we need to find the product and minus its quantity.
             resolve( {
@@ -45,15 +50,22 @@ exports.addInvoice = (req, res, next) => {
         }
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
-        
-        if(req.body.customer.customer_id){
-            return customerId = req.body.customer.customer_id;
+        let customerData = req.body.customer;
+
+        if(!customerData.name || !customerData.nip ||!customerData.city ||!customerData.street){
+            const error = new Error('Customer name,nip,city and street are required!')
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if(customerData.customer_id){
+            return customerId = customerData.customer_id;
         }else{
             const customer = new Customer({
-                name: req.body.customer.name,
-                nip: req.body.customer.nip,
-                city: req.body.customer.city,
-                street: req.body.customer.street
+                name: customerData.name,
+                nip: customerData.nip,
+                city: customerData.city,
+                street: customerData.street
             })
             customerId = customer._id;
             return customer.save()
@@ -77,15 +89,16 @@ exports.addInvoice = (req, res, next) => {
         return invoice.save()            
     })
     .then(result => {
-        res.status(200).json({
+        res.status(201).json({
             message: 'Invoice saved successfully'
         })
     })
     .catch(err => {
         if(!err.statusCode){
             err.statusCode = 500;
+            // err.message = 'Internal server error. Contact your administrator.'
         }
-        res.status(500).json({
+        res.status(err.statusCode).json({
             error: err.message
         })
     })
