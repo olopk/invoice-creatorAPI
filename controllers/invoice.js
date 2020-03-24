@@ -99,7 +99,7 @@ exports.addInvoice = (req, res, next) => {
             // err.message = 'Internal server error. Contact your administrator.'
         }
         res.status(err.statusCode).json({
-            error: err.message
+            message: err.message
         })
     })
 }
