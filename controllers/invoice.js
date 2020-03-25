@@ -1,5 +1,4 @@
 const Invoice = require('../models/invoice');
-
 const Product = require('../models/product');
 const Customer = require('../models/customer');
 
