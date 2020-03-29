@@ -165,8 +165,6 @@ module.exports = {
     addProduct: async function({productInput}, req){
         const errors = []
         if(validator.isEmpty(productInput.name)
-        || validator.isEmpty(productInput.brand)
-        || validator.isEmpty(productInput.model)
         || validator.isEmpty(productInput.quantity.toString())
         || validator.isEmpty(productInput.price.toString())){
             errors.push({message: 'Product data is incomplete.'})
@@ -179,14 +177,52 @@ module.exports = {
         }
 
         const product = new Product({
-            name: el.name,
-            brand: el.brand,
-            model: el.model,
-            price: el.price,
-            quantity: el.quantity
+            name: productInput.name,
+            brand: productInput.brand,
+            model: productInput.model,
+            price: productInput.price,
+            quantity: productInput.quantity
         })
 
         await product.save()
         return{message: 'Product saved successfully'}
+    },
+    editProduct: async function({id, productInput}, req){
+        const errors = []
+        if(validator.isEmpty(id)){
+            errors.push({message: 'Product ID is required.'})
+        }
+        if(validator.isEmpty(productInput.name)
+        || validator.isEmpty(productInput.quantity.toString())
+        || validator.isEmpty(productInput.price.toString())){
+            errors.push({message: 'Product data is incomplete.'})
+        }
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.code = 422;
+            throw error;
+        }
+        const product = await Product.findById(id);
+        console.log(product)
+
+       //TODO need to somehow handle this error  
+        if(!product){
+            const error = new Error('Invalid product ID.');
+            error.data.message = 'Product ID not found.'
+            error.code = 404;
+            throw error;
+        }
+
+        product.name = productInput.name;
+        product.quantity = productInput.quantity;
+        product.price = productInput.price;
+        product.brand = productInput.brand ? productInput.brand : product.brand;
+        product.model = productInput.model ? productInput.model : product.model;
+
+        await product.save();
+
+        return{message: 'Product updated successfully'}
     }
+    
 }

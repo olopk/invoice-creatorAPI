@@ -70,8 +70,8 @@ module.exports = buildSchema(`
         editCustomer(id: String!): returnData!
         delCustomer(id: String!): returnData!
 
-        addProduct(productInput: ProductInputData): returnData!
-        editProduct(id: String!): returnData!
+        addProduct(productInput: ProductInputData!): returnData!
+        editProduct(id: String!, productInput: ProductInputData!): returnData!
         delProduct(id: String!): returnData!
     }
 
