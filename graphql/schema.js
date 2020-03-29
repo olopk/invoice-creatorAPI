@@ -1,35 +1,78 @@
 const { buildSchema } = require('graphql');
 
 module.exports = buildSchema(`
-    input Customer{
+    input CustomerInputData{
+        customer_id: ID
         name: String!
         nip: Int!
         city: String!
         street: String!
     }
-    input Order{
+    input ProductInputData{
+        product_id: ID
         name: String!
-        unit_price: Float!
-        total_price: Float!
+        brand: String
+        model: String
+        price: Float!
         quantity: Int!
+        total_price: Float
     }
     input InvoiceInputData {
         invoice_nr: String!
         date: String!
         total_price: Float!
-        customer: Customer!
-        order: [Order!]!
+        customer: CustomerInputData!
+        order: [ProductInputData!]!
     }
-    type retObj{
+    type customer{
+        _id: ID!
+        name: String!
+        nip: Int!
+        city: String!
+        street: String!
+    }
+    type product{
+        _id: ID!
+        name: String!
+        brand: String
+        model: String
+        price: Float!
+        quantity: Int
+        total_price: Float
+    }
+    type invoice{
+        _id: ID!
+        invoice_nr: String!
+        date: String!
+        total_price: Float!
+        customer: customer!
+        order: [product!]!
+    }
+    type returnData{
         message: String!
     }
 
     type RootQuery{
-        getInvoices: String!
+        getInvoices: [invoice!]!
+        getInvoice(id: String!): invoice!
+        getCustomers: [customer!]!
+        getCustomer(id: String!): customer!
+        getProducts: [product!]!
+        getProduct(id: String!): product!
     }
 
     type RootMutation{
-        addInvoice(invoiceInput: InvoiceInputData): retObj!
+        addInvoice(invoiceInput: InvoiceInputData): returnData!
+        editInvoice(id: String!): returnData!
+        delInvoice(id: String!): returnData!
+
+        addCustomer(customerInput: CustomerInputData): returnData!
+        editCustomer(id: String!): returnData!
+        delCustomer(id: String!): returnData!
+
+        addProduct(productInput: ProductInputData): returnData!
+        editProduct(id: String!): returnData!
+        delProduct(id: String!): returnData!
     }
 
     schema{

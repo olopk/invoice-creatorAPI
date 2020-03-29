@@ -8,27 +8,31 @@ const validator = require('validator');
 
 
 const productSave = (el) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         if(el.product_id){
             //TODO we need to find the product and minus its quantity.
-            resolve( {
+            const newProduct = await Product.findById(el.product_id);
+            newProduct.quantity = newProduct.quantity - el.quantity;
+            await newProduct.save()            
+            
+            resolve({
                 product: el.product_id,
                 quantity: el.quantity,
-                unit_price: el.unit_price,
+                price: el.price,
                 total_price: el.total_price
             })
         }else{
             const product = new Product({
                 name: el.name,
                 quantity: -el.quantity,
-                price: el.unit_price,
+                price: el.price,
             })
             product.save()
             .then(res => {
                 resolve({
                     product: product._id,
                     quantity: el.quantity,
-                    unit_price: el.unit_price,
+                    price: el.price,
                     total_price: el.total_price
                 })
             })
@@ -37,16 +41,13 @@ const productSave = (el) => {
 
 
 module.exports = {
-    getInvoices() {
-        Invoice
-        .find()
-        .populate('customer')
-        .populate('order.product')
-        .then(invoices =>{
-            res.status(200).json([
-                ...invoices
-            ])
-        })
+    getInvoices: async function(args, req){
+        const allInvoices = await Invoice.find().populate('customer').populate('order.product');
+        return allInvoices
+    },
+    getInvoice: async function({id}, req){
+        const singleInvoice = await Invoice.findById(id).populate('customer').populate('order.product');
+        return singleInvoice
     },
     addInvoice: async function({invoiceInput}, req){
         const orderData = invoiceInput.order;
@@ -68,10 +69,10 @@ module.exports = {
 
         orderData.forEach(element => {
             if(validator.isEmpty(element.name)
-            || validator.isEmpty(element.unit_price.toString())
+            || validator.isEmpty(element.price.toString())
             || validator.isEmpty(element.total_price.toString())
             || validator.isEmpty(element.quantity.toString())){
-                errors.push({message: 'name, unit price, total price and quantity is required for each product.'})
+                errors.push({message: 'name, price, total price and quantity is required for each product.'})
             }
         });
         if(errors.length > 0) {
@@ -120,5 +121,72 @@ module.exports = {
         
         await invoice.save()  
         return {message: 'Invoice saved successfully'}
+    },
+    getCustomers: async function(args, req){
+        const allCustomers = await Customer.find();
+        return allCustomers
+    },
+    getCustomer: async function({id}, req){
+        const singleCustomer = await Customer.findById(id);
+        return singleCustomer
+    },
+    addCustomer: async function({customerInput}, req){
+        const errors = []
+        if(validator.isEmpty(customerInput.name)
+        || validator.isEmpty(customerInput.nip.toString())
+        || validator.isEmpty(customerInput.city)
+        || validator.isEmpty(customerInput.street)){
+            errors.push({message: 'Customer data is incomplete.'})
+        }
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.code = 422;
+            throw error;
+        }
+
+        const customer = new Customer({
+            name: customerInput.name,
+            nip: customerInput.nip,
+            city: customerInput.city,
+            street: customerInput.street
+        })
+        await customer.save()
+        return{message: 'Customer saved successfully'}
+    },
+    getProducts: async function(args, req){
+        const allProducts = await Product.find();
+        return allProducts
+    },
+    getProduct: async function({id}, req){
+        const singleProduct = await Product.findById(id);
+        return singleProduct
+    },
+    addProduct: async function({productInput}, req){
+        const errors = []
+        if(validator.isEmpty(productInput.name)
+        || validator.isEmpty(productInput.brand)
+        || validator.isEmpty(productInput.model)
+        || validator.isEmpty(productInput.quantity.toString())
+        || validator.isEmpty(productInput.price.toString())){
+            errors.push({message: 'Product data is incomplete.'})
+        }
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.code = 422;
+            throw error;
+        }
+
+        const product = new Product({
+            name: el.name,
+            brand: el.brand,
+            model: el.model,
+            price: el.price,
+            quantity: el.quantity
+        })
+
+        await product.save()
+        return{message: 'Product saved successfully'}
     }
 }

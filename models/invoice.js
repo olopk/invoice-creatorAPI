@@ -27,7 +27,7 @@ const invoiceSchema = new Schema({
                 type: Number,
                 required: true
             },
-            unit_price:{
+            price:{
                 type: Number,
                 required: true
             },
