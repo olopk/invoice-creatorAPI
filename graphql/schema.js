@@ -39,7 +39,13 @@ module.exports = buildSchema(`
         model: String
         price: Float!
         quantity: Int
-        total_price: Float
+    }
+    type orderItem{
+        _id: ID!
+        product: product!
+        quantity: Int!
+        price: Float!
+        total_price: Float!
     }
     type invoice{
         _id: ID!
@@ -47,7 +53,7 @@ module.exports = buildSchema(`
         date: String!
         total_price: Float!
         customer: customer!
-        order: [product!]!
+        order: [orderItem!]!
     }
     type returnData{
         message: String!
