@@ -6,15 +6,21 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 
-
 const productSave = (el) => {
     return new Promise(async (resolve, reject) => {
         if(el.product_id){
-            //TODO we need to find the product and minus its quantity.
-            const newProduct = await Product.findById(el.product_id);
+            let newProduct;
+            try{
+                newProduct = await Product.findById(el.product_id)
+            }
+            catch{
+                const error = new Error('Product not found.');
+                error.code = 404;
+                throw error;
+            }
+
             newProduct.quantity = newProduct.quantity - el.quantity;
-            await newProduct.save()            
-            
+            await newProduct.save()                       
             resolve({
                 product: el.product_id,
                 quantity: el.quantity,
@@ -42,11 +48,26 @@ const productSave = (el) => {
 
 module.exports = {
     getInvoices: async function(args, req){
-        const allInvoices = await Invoice.find().populate('customer').populate('order.product');
-        return allInvoices
+        const allInvoices = await Invoice.find().populate('customer').populate('order.product')
+        const newAllInvoices = allInvoices.map(invoice => invoice._doc).map(el => {
+            return{
+                ...el,
+                date: el.date.toISOString()
+            }
+        })
+        return newAllInvoices
     },
     getInvoice: async function({id}, req){
-        const singleInvoice = await Invoice.findById(id).populate('customer').populate('order.product');
+        let singleInvoice;
+        try{
+            singleInvoice = await Invoice.findById(id).populate('customer').populate('order.product');
+        }
+        catch{
+            const error = new Error('Invoice not found.');
+            error.code = 404;
+            throw error;
+        }
+        
         return singleInvoice
     },
     addInvoice: async function({invoiceInput}, req){
@@ -127,7 +148,15 @@ module.exports = {
         return allCustomers
     },
     getCustomer: async function({id}, req){
-        const singleCustomer = await Customer.findById(id);
+        let singleCustomer;
+        try{
+            singleCustomer = await Customer.findById(id);
+        }
+        catch{
+            const error = new Error('Customer not found.');
+            error.code = 404;
+            throw error;
+        }
         return singleCustomer
     },
     addCustomer: async function({customerInput}, req){
@@ -154,12 +183,56 @@ module.exports = {
         await customer.save()
         return{message: 'Customer saved successfully'}
     },
+    editCustomer: async function({id, customerInput}, req){
+        const errors = []
+        if(validator.isEmpty(id)){
+            errors.push({message: 'Customer ID is required.'})
+        }
+        if(validator.isEmpty(customerInput.name)
+        || validator.isEmpty(customerInput.nip.toString())
+        || validator.isEmpty(customerInput.street)
+        || validator.isEmpty(customerInput.city)){
+            errors.push({message: 'Customer data is incomplete.'})
+        }
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.code = 422;
+            throw error;
+        }
+
+        let customer;
+        try{
+            customer = await Customer.findById(id);
+        }catch{
+            const error = new Error('Customer not found.');
+            error.code = 404;
+            throw error;
+        }
+
+        customer.name = customerInput.name;
+        customer.nip = customerInput.nip;
+        customer.city = customerInput.city;
+        customer.street = customerInput.street;
+
+        await customer.save();
+
+        return{message: 'Customer updated successfully'}
+    },
     getProducts: async function(args, req){
         const allProducts = await Product.find();
         return allProducts
     },
     getProduct: async function({id}, req){
-        const singleProduct = await Product.findById(id);
+        let singleProduct;
+        try{
+            singleProduct = await Product.findById(id);
+        }
+        catch{
+            const error = new Error('Product not found.');
+            error.code = 404;
+            throw error;
+        }
         return singleProduct
     },
     addProduct: async function({productInput}, req){
@@ -203,13 +276,12 @@ module.exports = {
             error.code = 422;
             throw error;
         }
-        const product = await Product.findById(id);
-        console.log(product)
 
-       //TODO need to somehow handle this error  
-        if(!product){
-            const error = new Error('Invalid product ID.');
-            error.data.message = 'Product ID not found.'
+        let product;
+        try{
+            product = await Product.findById(id);
+        }catch{
+            const error = new Error('Product not found.');
             error.code = 404;
             throw error;
         }

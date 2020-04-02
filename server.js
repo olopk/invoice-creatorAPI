@@ -8,6 +8,9 @@ const graphqlHttp = require('express-graphql');
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
 
+var moment = require('moment-timezone');
+moment().tz("Europe/Warsaw").format();
+
 
 // routes import
 const authRoutes = require('./routes/auth');
@@ -19,6 +22,8 @@ const app = express();
 const port = 8080;
 
 
+app.use(bodyParser.json());
+
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader(
@@ -26,6 +31,9 @@ app.use((req, res, next) => {
     'OPTIONS, GET, POST, PUT, PATCH, DELETE'
   );
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
   next();
 });
 
@@ -35,16 +43,17 @@ app.use('/graphql', graphqlHttp({
   graphiql: true,
   customFormatErrorFn(err) {
     if (!err.originalError) {
-      return err;
+      console.log(err)
+      return { message: err.message };
     }
     const data = err.originalError.data;
-    const message = err.message || 'An error occurred.';
-    const code = err.originalError.code || 500;
-    return { message: message, status: code, data: data };
+    const message = err.originalError.message || 'An error occurred.';
+    const code = err.originalError.statusCode || 500;
+
+    return { message: message, code: code, data: data };
   }
 }))
 
-app.use(bodyParser.json());
 // app.use('/auth', authRoutes);
 
 // start the server

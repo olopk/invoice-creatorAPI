@@ -12,6 +12,7 @@ module.exports = buildSchema(`
         product_id: ID
         name: String!
         brand: String
+        unit: String
         model: String
         price: Float!
         quantity: Int!
@@ -67,7 +68,7 @@ module.exports = buildSchema(`
         delInvoice(id: String!): returnData!
 
         addCustomer(customerInput: CustomerInputData): returnData!
-        editCustomer(id: String!): returnData!
+        editCustomer(id: String!, customerInput: CustomerInputData!): returnData!
         delCustomer(id: String!): returnData!
 
         addProduct(productInput: ProductInputData!): returnData!
