@@ -60,7 +60,9 @@ module.exports = {
     getInvoice: async function({id}, req){
         let singleInvoice;
         try{
-            singleInvoice = await Invoice.findById(id).populate('customer').populate('order.product');
+            const newSingleInvoice = await Invoice.findById(id).populate('customer').populate('order.product');
+            singleInvoice = newSingleInvoice._doc;
+            singleInvoice.date  = singleInvoice.date.toISOString()
         }
         catch{
             const error = new Error('Invoice not found.');
