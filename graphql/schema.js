@@ -2,14 +2,14 @@ const { buildSchema } = require('graphql');
 
 module.exports = buildSchema(`
     input CustomerInputData{
-        customer_id: ID
+        _id: ID
         name: String!
         nip: Int!
         city: String!
         street: String!
     }
     input ProductInputData{
-        product_id: ID
+        _id: ID
         name: String!
         brand: String
         unit: String

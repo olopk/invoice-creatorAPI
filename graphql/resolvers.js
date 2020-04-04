@@ -8,10 +8,10 @@ const validator = require('validator');
 
 const productSave = (el) => {
     return new Promise(async (resolve, reject) => {
-        if(el.product_id){
+        if(el._id){
             let newProduct;
             try{
-                newProduct = await Product.findById(el.product_id)
+                newProduct = await Product.findById(el._id)
             }
             catch{
                 const error = new Error('Product not found.');
@@ -22,7 +22,7 @@ const productSave = (el) => {
             newProduct.quantity = newProduct.quantity - el.quantity;
             await newProduct.save()                       
             resolve({
-                product: el.product_id,
+                product: el._id,
                 quantity: el.quantity,
                 price: el.price,
                 total_price: el.total_price
@@ -201,8 +201,8 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
 
-        if(customerData.customer_id){
-            invoice.customer = customerData.customer_id;
+        if(customerData._id){
+            invoice.customer = customerData._id;
         }else{
             const customer = new Customer({
                 name: customerData.name,
@@ -214,24 +214,20 @@ module.exports = {
             customerId = customer._id;
         }
 
-        //Now we check if in existing invoice we have some order items that have
-        //been deleted in edit mode, if its true, we need to recalculate product
-        //quantity, and next splice the order item.
-
-        // const productCalc = (el) => {
-        //     return new Promise(async (resolve,reject)=>{
-        //         const product = await Product.findById(el.product);
-        //         product.quantity += el.quantity;
-        //         await product.save()
-        //         resolve() 
-        //     })
-        // }
-
-        // await Promise.all(invoice.order.forEach(async el => await productCalc(el)))
+        //Now we splice all orders from the array but before that
+        //we recalculate all the existing products in warehouse
+        
+        const productCalc = (el) => {
+            return new Promise(async (resolve,reject)=>{
+                const product = await Product.findById(el.product);
+                product.quantity += el.quantity;
+                await product.save()
+                resolve() 
+            })
+        }
+        await Promise.all(invoice.order.map(async el => await productCalc(el)))
 
         invoice.order = await Promise.all(orderData.map( async el => await productSave(el)))
-        
-        invoice.order = []
         invoice.invoice_nr = invoiceInput.invoice_nr; 
         invoice.date = invoiceInput.date;
         invoice.total_price = invoiceInput.total_price;
