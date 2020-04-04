@@ -145,6 +145,100 @@ module.exports = {
         await invoice.save()  
         return {message: 'Invoice saved successfully'}
     },
+    editInvoice: async function({id, invoiceInput}, req){
+        //First we check if the invoice _id exists.
+        let invoice;
+        try{
+            invoice = await Invoice.findById(id);
+        }catch{
+            const error = new Error('Invoice with given ID doesnt exists.')
+            error.statusCode = 404
+            throw error;
+        }   
+
+        const orderData = invoiceInput.order;
+        const customerData = invoiceInput.customer;
+        const errors = [];
+        // First we make a cumbersome validation..
+        if(validator.isEmpty(invoiceInput.invoice_nr)
+         || validator.isEmpty(invoiceInput.date)
+         || validator.isEmpty(invoiceInput.total_price.toString())){
+             errors.push({message: 'Invoice_nr, date and total_price are required'})
+         }
+
+         if(validator.isEmpty(customerData.name)
+         || validator.isEmpty(customerData.nip.toString())
+         || validator.isEmpty(customerData.city)
+         || validator.isEmpty(customerData.street)){
+             errors.push({message: 'Customer data is incomplete.'})
+         }
+
+        orderData.forEach(element => {
+            if(validator.isEmpty(element.name)
+            || validator.isEmpty(element.price.toString())
+            || validator.isEmpty(element.total_price.toString())
+            || validator.isEmpty(element.quantity.toString())){
+                errors.push({message: 'name, price, total price and quantity is required for each product.'})
+            }
+        });
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.code = 422;
+            throw error;
+          }
+        //Then we check if the invoice_nr is equal to the previous one if not
+        //then we check if it isnt already used in other document.      
+        if(invoiceInput.invoice_nr != invoice.invoice_nr){
+            const invoiceArr = await Invoice.find().where('invoice_nr', invoiceInput.invoice_nr)
+    
+            if(invoiceArr.length != 0){
+                const error = new Error('Invoice number is already used')
+                error.statusCode = 409
+                throw error;
+            }
+        }  
+
+        // then we need to check if we need to add new customer, or just pick it up from the db.
+
+        if(customerData.customer_id){
+            invoice.customer = customerData.customer_id;
+        }else{
+            const customer = new Customer({
+                name: customerData.name,
+                nip: customerData.nip,
+                city: customerData.city,
+                street: customerData.street
+            })
+            await customer.save()
+            customerId = customer._id;
+        }
+
+        //Now we check if in existing invoice we have some order items that have
+        //been deleted in edit mode, if its true, we need to recalculate product
+        //quantity, and next splice the order item.
+
+        // const productCalc = (el) => {
+        //     return new Promise(async (resolve,reject)=>{
+        //         const product = await Product.findById(el.product);
+        //         product.quantity += el.quantity;
+        //         await product.save()
+        //         resolve() 
+        //     })
+        // }
+
+        // await Promise.all(invoice.order.forEach(async el => await productCalc(el)))
+
+        invoice.order = await Promise.all(orderData.map( async el => await productSave(el)))
+        
+        invoice.order = []
+        invoice.invoice_nr = invoiceInput.invoice_nr; 
+        invoice.date = invoiceInput.date;
+        invoice.total_price = invoiceInput.total_price;
+        
+        await invoice.save()  
+        return {message: 'Invoice updated successfully'}
+    },
     getCustomers: async function(args, req){
         const allCustomers = await Customer.find();
         return allCustomers

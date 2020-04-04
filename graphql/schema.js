@@ -70,7 +70,7 @@ module.exports = buildSchema(`
 
     type RootMutation{
         addInvoice(invoiceInput: InvoiceInputData): returnData!
-        editInvoice(id: String!): returnData!
+        editInvoice(id: String!, invoiceInput: InvoiceInputData): returnData!
         delInvoice(id: String!): returnData!
 
         addCustomer(customerInput: CustomerInputData): returnData!
