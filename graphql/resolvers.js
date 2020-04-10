@@ -45,6 +45,14 @@ const productSave = (el) => {
         }})    
     }
 
+const productCalc = (el) => {
+    return new Promise(async (resolve,reject)=>{
+        const product = await Product.findById(el.product);
+        product.quantity += el.quantity;
+        await product.save()
+        resolve() 
+    })
+}
 
 module.exports = {
     getInvoices: async function(args, req){
@@ -216,15 +224,6 @@ module.exports = {
 
         //Now we splice all orders from the array but before that
         //we recalculate all the existing products in warehouse
-        
-        const productCalc = (el) => {
-            return new Promise(async (resolve,reject)=>{
-                const product = await Product.findById(el.product);
-                product.quantity += el.quantity;
-                await product.save()
-                resolve() 
-            })
-        }
         await Promise.all(invoice.order.map(async el => await productCalc(el)))
 
         invoice.order = await Promise.all(orderData.map( async el => await productSave(el)))
@@ -234,6 +233,31 @@ module.exports = {
         
         await invoice.save()  
         return {message: 'Invoice updated successfully'}
+    },
+    delInvoice: async function({id}, req){
+        const errors = []
+        if(validator.isEmpty(id)){
+            errors.push({message: 'Invoice ID is required.'})
+        }
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.statusCode = 422;
+            throw error;
+        }
+        const invoice = await Invoice.findById(id);
+        if(!invoice){
+            const error = new Error('Invoice not found.');
+            error.statusCode = 404;
+            throw error;
+        };
+        // console.log(invoice)
+        //we recalculate all the existing products in warehouse
+        await Promise.all(invoice.order.map(async el => await productCalc(el)))
+
+        await Invoice.findByIdAndDelete(id)
+
+        return{message: 'Faktura została usunięta.'}
     },
     getCustomers: async function(args, req){
         const allCustomers = await Customer.find();
