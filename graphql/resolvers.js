@@ -15,7 +15,7 @@ const productSave = (el) => {
             }
             catch{
                 const error = new Error('Product not found.');
-                error.code = 404;
+                error.statusCode = 404;
                 throw error;
             }
 
@@ -66,7 +66,7 @@ module.exports = {
         }
         catch{
             const error = new Error('Invoice not found.');
-            error.code = 404;
+            error.statusCode = 404;
             throw error;
         }
         
@@ -101,7 +101,7 @@ module.exports = {
         if(errors.length > 0) {
             const error = new Error('Invalid input.');
             error.data = errors;
-            error.code = 422;
+            error.statusCode = 422;
             throw error;
           }
         //Then we check if the invoice_nr isnt already used.      
@@ -184,7 +184,7 @@ module.exports = {
         if(errors.length > 0) {
             const error = new Error('Invalid input.');
             error.data = errors;
-            error.code = 422;
+            error.statusCode = 422;
             throw error;
           }
         //Then we check if the invoice_nr is equal to the previous one if not
@@ -246,7 +246,7 @@ module.exports = {
         }
         catch{
             const error = new Error('Customer not found.');
-            error.code = 404;
+            error.statusCode = 404;
             throw error;
         }
         return singleCustomer
@@ -262,7 +262,7 @@ module.exports = {
         if(errors.length > 0) {
             const error = new Error('Invalid input.');
             error.data = errors;
-            error.code = 422;
+            error.statusCode = 422;
             throw error;
         }
 
@@ -289,16 +289,14 @@ module.exports = {
         if(errors.length > 0) {
             const error = new Error('Invalid input.');
             error.data = errors;
-            error.code = 422;
+            error.statusCode = 422;
             throw error;
         }
 
-        let customer;
-        try{
-            customer = await Customer.findById(id);
-        }catch{
+        let customer = await Customer.findById(id);
+        if(!customer){
             const error = new Error('Customer not found.');
-            error.code = 404;
+            error.statusCode = 404;
             throw error;
         }
 
@@ -311,6 +309,34 @@ module.exports = {
 
         return{message: 'Customer updated successfully'}
     },
+    delCustomer: async function({id}, req){
+        const errors = []
+        if(validator.isEmpty(id)){
+            errors.push({message: 'Customer ID is required.'})
+        }
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.statusCode = 422;
+            throw error;
+        }
+        const customer = await Customer.exists({_id: id});
+        if(!customer){
+            const error = new Error('Customer not found.');
+            error.code = 404;
+            throw error;
+        };
+        const customerInvoices = await Invoice.find().where('customer', id)
+        if(customerInvoices.length > 0){
+            const invoiceNr = customerInvoices[0].invoice_nr;
+            const error = new Error(`Nie można usunąć klienta, ponieważ jest powiązany z fakturą nr: ${invoiceNr}.`);
+            error.statusCode = 444;
+            throw error;
+        }
+        await Customer.findByIdAndDelete(id)
+
+        return{message: 'Klient został usunięty.'}
+    },
     getProducts: async function(args, req){
         const allProducts = await Product.find();
         return allProducts
@@ -322,7 +348,7 @@ module.exports = {
         }
         catch{
             const error = new Error('Product not found.');
-            error.code = 404;
+            error.statusCode = 404;
             throw error;
         }
         return singleProduct
@@ -337,7 +363,7 @@ module.exports = {
         if(errors.length > 0) {
             const error = new Error('Invalid input.');
             error.data = errors;
-            error.code = 422;
+            error.statusCode = 422;
             throw error;
         }
 
@@ -365,7 +391,7 @@ module.exports = {
         if(errors.length > 0) {
             const error = new Error('Invalid input.');
             error.data = errors;
-            error.code = 422;
+            error.statusCode = 422;
             throw error;
         }
 
@@ -374,7 +400,7 @@ module.exports = {
             product = await Product.findById(id);
         }catch{
             const error = new Error('Product not found.');
-            error.code = 404;
+            error.statusCode = 404;
             throw error;
         }
 
@@ -387,6 +413,35 @@ module.exports = {
         await product.save();
 
         return{message: 'Product updated successfully'}
-    }
+    },
+    delProduct: async function({id}, req){
+        const errors = []
+        if(validator.isEmpty(id)){
+            errors.push({message: 'Product ID is required.'})
+        }
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.statusCode = 422;
+            throw error;
+        }
+        const product = await Product.exists({_id: id});
+        if(!product){
+            const error = new Error('Product not found.');
+            error.statusCode = 404;
+            throw error;
+        };
+        const productInvoices = await Invoice.find().where('order.product', id)
+        if(productInvoices.length > 0){
+            const invoiceNr = productInvoices[0].invoice_nr;
+            const error = new Error(`Nie można usunąć produktu, ponieważ jest powiązany z fakturą nr: ${invoiceNr}.`);
+            error.statusCode = 444;
+            error.code = 444;
+            throw error;
+        }
+        await Product.findByIdAndDelete(id)
+
+        return{message: 'Produkt został usunięty.'}
+    },
     
 }
