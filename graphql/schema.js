@@ -1,6 +1,12 @@
 const { buildSchema } = require('graphql');
 
 module.exports = buildSchema(`
+    input SignInInputData{
+        name: String!
+        surname: String!
+        email: String!
+        password: String!
+    }
     input CustomerInputData{
         _id: ID
         name: String!
@@ -24,6 +30,12 @@ module.exports = buildSchema(`
         total_price: Float!
         customer: CustomerInputData!
         order: [ProductInputData!]!
+    }
+    type userData{
+        _id: ID!
+        name: String!
+        token: String!
+        tokenExpiry: Int!
     }
     type customer{
         _id: ID!
@@ -60,6 +72,7 @@ module.exports = buildSchema(`
     }
 
     type RootQuery{
+        logIn(email: String!, password: String!): userData!
         getInvoices: [invoice!]!
         getInvoice(id: String!): invoice!
         getCustomers: [customer!]!
@@ -69,6 +82,7 @@ module.exports = buildSchema(`
     }
 
     type RootMutation{
+        signIn(signInInput: SignInInputData!): returnData!
         addInvoice(invoiceInput: InvoiceInputData): returnData!
         editInvoice(id: String!, invoiceInput: InvoiceInputData): returnData!
         delInvoice(id: String!): returnData!

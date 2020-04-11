@@ -1,6 +1,7 @@
 const Invoice = require('../models/invoice');
 const Product = require('../models/product');
 const Customer = require('../models/customer');
+const User = require('../models/user');
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -55,6 +56,74 @@ const productCalc = (el) => {
 }
 
 module.exports = {
+    signIn: async function({signInInput}){
+        const errors = [];
+        // First validation..
+        if(validator.isEmpty(signInInput.name)
+         || validator.isEmpty(signInInput.surname)
+         || validator.isEmpty(signInInput.email)
+         || validator.isEmpty(signInInput.password)){
+             errors.push({message: 'Wszystkie pola są wymagane.'})
+         }
+
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.statusCode = 422;
+            throw error;
+        }
+
+        const emailExists = await User.exists({email: signInInput.email})
+
+        if(emailExists){
+            const error = new Error('Email znajduje się w bazie, przejdź do strony logowania.')
+            error.data = 442
+            throw error;
+        }
+
+        const newUser = new User({
+            name: signInInput.name,
+            surname: signInInput.surname,
+            email: signInInput.email,
+            password: signInInput.password
+        })
+
+        await newUser.save()
+
+        return{message: 'Użytkownik został założony, przejdz do strony logowania'}
+    },
+    logIn: async function({email, password}){
+        const errors = [];
+        // First validation..
+        if(validator.isEmpty(email)
+         || validator.isEmpty(password)){
+             errors.push({message: 'Wszystkie pola są wymagane.'})
+         }
+
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.statusCode = 422;
+            throw error;
+        }
+
+        const user = await User.findOne({email: email});
+
+        if(!user){
+            const error = new Error('Użytkownik o danym adresie email nie istnieje, załóż konto.');
+            error.data = errors;
+            error.statusCode = 404;
+            throw error;
+        }
+        if(user.password !== password){
+            const error = new Error('Hasło jest niepoprawne');
+            error.data = errors;
+            error.statusCode = 401;
+            throw error;
+        }
+        //TODO JWT
+        return{_id: user.id, name: user.name, token: '12345', tokenExpiry: '1'}
+    },
     getInvoices: async function(args, req){
         const allInvoices = await Invoice.find().populate('customer').populate('order.product')
         const newAllInvoices = allInvoices.map(invoice => invoice._doc).map(el => {
