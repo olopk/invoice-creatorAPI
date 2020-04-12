@@ -122,7 +122,21 @@ module.exports = {
             throw error;
         }
         //TODO JWT
-        return{_id: user.id, name: user.name, token: '12345', tokenExpiry: '1'}
+        const token = jwt.sign({
+            userId: user._id,
+            name: user.name
+        },"UltrasecretOptyk",{expiresIn: '1m'})
+
+        return{token: token, tokenExpiry: '31'}
+    },
+    getUser: async function(args, req){
+        if(!req.userData || !req.userData.userId){
+            const error = new Error('Brak autoryzacji')
+            error.statusCode = 401;
+            throw error
+        }
+        console.log(req.userData)
+        return{_id: req.userData.userId, name: req.userData.name}
     },
     getInvoices: async function(args, req){
         const allInvoices = await Invoice.find().populate('customer').populate('order.product')

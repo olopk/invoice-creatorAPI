@@ -32,10 +32,10 @@ module.exports = buildSchema(`
         order: [ProductInputData!]!
     }
     type userData{
-        _id: ID!
-        name: String!
-        token: String!
-        tokenExpiry: Int!
+        _id: ID
+        name: String
+        token: String
+        tokenExpiry: Int
     }
     type customer{
         _id: ID!
@@ -73,6 +73,7 @@ module.exports = buildSchema(`
 
     type RootQuery{
         logIn(email: String!, password: String!): userData!
+        getUser: userData!
         getInvoices: [invoice!]!
         getInvoice(id: String!): invoice!
         getCustomers: [customer!]!

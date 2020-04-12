@@ -8,6 +8,9 @@ const graphqlHttp = require('express-graphql');
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
 
+//Auth middleware
+const Auth = require('./middlewares/Auth')
+
 var moment = require('moment-timezone');
 moment().tz("Europe/Warsaw").format();
 
@@ -37,7 +40,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/graphql', graphqlHttp({
+app.use('/graphql', Auth, graphqlHttp({
   schema: graphqlSchema,
   rootValue: graphqlResolver,
   graphiql: true,
