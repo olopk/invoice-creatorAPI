@@ -125,9 +125,9 @@ module.exports = {
         const token = jwt.sign({
             userId: user._id,
             name: user.name
-        },"UltrasecretOptyk",{expiresIn: '60m'})
+        },"UltrasecretOptyk",{expiresIn: '360m'})
 
-        return{token: token, tokenExpiry: '60'}
+        return{token: token, tokenExpiry: '360'}
     },
     getUser: async function(args, req){
         if(!req.userData || !req.userData.userId){
@@ -138,6 +138,11 @@ module.exports = {
         return{_id: req.userData.userId, name: req.userData.name}
     },
     getInvoices: async function(args, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const allInvoices = await Invoice.find().populate('customer').populate('order.product')
         const newAllInvoices = allInvoices.map(invoice => invoice._doc).map(el => {
             return{
@@ -148,6 +153,11 @@ module.exports = {
         return newAllInvoices
     },
     getInvoice: async function({id}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         let singleInvoice;
         try{
             const newSingleInvoice = await Invoice.findById(id).populate('customer').populate('order.product');
@@ -163,6 +173,11 @@ module.exports = {
         return singleInvoice
     },
     addInvoice: async function({invoiceInput}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const orderData = invoiceInput.order;
         const customerData = invoiceInput.customer;
         const errors = [];
@@ -236,6 +251,11 @@ module.exports = {
         return {message: 'Invoice saved successfully'}
     },
     editInvoice: async function({id, invoiceInput}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         //First we check if the invoice _id exists.
         let invoice;
         try{
@@ -317,6 +337,11 @@ module.exports = {
         return {message: 'Invoice updated successfully'}
     },
     delInvoice: async function({id}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'Invoice ID is required.'})
@@ -342,10 +367,20 @@ module.exports = {
         return{message: 'Faktura została usunięta.'}
     },
     getCustomers: async function(args, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const allCustomers = await Customer.find();
         return allCustomers
     },
     getCustomer: async function({id}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         let singleCustomer;
         try{
             singleCustomer = await Customer.findById(id);
@@ -358,6 +393,11 @@ module.exports = {
         return singleCustomer
     },
     addCustomer: async function({customerInput}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const errors = []
         if(validator.isEmpty(customerInput.name)
         || validator.isEmpty(customerInput.nip.toString())
@@ -382,6 +422,11 @@ module.exports = {
         return{message: 'Customer saved successfully'}
     },
     editCustomer: async function({id, customerInput}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'Customer ID is required.'})
@@ -416,6 +461,11 @@ module.exports = {
         return{message: 'Customer updated successfully'}
     },
     delCustomer: async function({id}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'Customer ID is required.'})
@@ -444,10 +494,20 @@ module.exports = {
         return{message: 'Klient został usunięty.'}
     },
     getProducts: async function(args, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const allProducts = await Product.find();
         return allProducts
     },
     getProduct: async function({id}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         let singleProduct;
         try{
             singleProduct = await Product.findById(id);
@@ -460,6 +520,11 @@ module.exports = {
         return singleProduct
     },
     addProduct: async function({productInput}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const errors = []
         if(validator.isEmpty(productInput.name)
         || validator.isEmpty(productInput.quantity.toString())
@@ -485,6 +550,11 @@ module.exports = {
         return{message: 'Product saved successfully'}
     },
     editProduct: async function({id, productInput}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'Product ID is required.'})
@@ -521,6 +591,11 @@ module.exports = {
         return{message: 'Product updated successfully'}
     },
     delProduct: async function({id}, req){
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'Product ID is required.'})
