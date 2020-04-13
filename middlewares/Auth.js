@@ -11,7 +11,8 @@ module.exports = (req, res, next) =>{
         try{
             decodedToken = jwt.verify(token, 'UltrasecretOptyk')
         }catch(err){
-            err.statusCode = 500;
+            err.message = "Token uległ wygaśnięciu, zaloguj się ponownie"
+            err.statusCode = 401    
             throw err
         }
         if(!decodedToken){
@@ -19,7 +20,6 @@ module.exports = (req, res, next) =>{
             error.statusCode = 401;
             throw error
         }
-        console.log(decodedToken)
         req.userData = {
             userId: decodedToken.userId,
             name: decodedToken.name

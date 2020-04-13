@@ -127,7 +127,7 @@ module.exports = {
             name: user.name
         },"UltrasecretOptyk",{expiresIn: '1m'})
 
-        return{token: token, tokenExpiry: '31'}
+        return{token: token, tokenExpiry: '1'}
     },
     getUser: async function(args, req){
         if(!req.userData || !req.userData.userId){
@@ -135,7 +135,6 @@ module.exports = {
             error.statusCode = 401;
             throw error
         }
-        console.log(req.userData)
         return{_id: req.userData.userId, name: req.userData.name}
     },
     getInvoices: async function(args, req){
