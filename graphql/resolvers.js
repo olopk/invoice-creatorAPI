@@ -125,9 +125,9 @@ module.exports = {
         const token = jwt.sign({
             userId: user._id,
             name: user.name
-        },"UltrasecretOptyk",{expiresIn: '1m'})
+        },"UltrasecretOptyk",{expiresIn: '60m'})
 
-        return{token: token, tokenExpiry: '1'}
+        return{token: token, tokenExpiry: '60'}
     },
     getUser: async function(args, req){
         if(!req.userData || !req.userData.userId){

@@ -46,18 +46,11 @@ app.use('/graphql', Auth, graphqlHttp({
   graphiql: true,
   customFormatErrorFn(err) {
     if (!err.originalError) {
-      console.log(err)
-      console.log('its original err')
       return { message: err.message, code: 500 };
     }
     const data = err.originalError.data;
     const message = err.originalError.message || 'An error occurred.';
     const code = err.originalError.statusCode || 500;
-
-    // console.log('data', data)
-    // console.log('message', mesage)
-    // console.log('code', code)
-    console.log('trafilo to tu', err)
 
     return { message: message, code: code, data: data };
   }
@@ -66,7 +59,6 @@ app.use('/graphql', Auth, graphqlHttp({
 app.use((error, req, res, next) => {
   const status = error.statusCode || 500;
   const message = error.message;
-  console.log(message)
   res.status(status).json({ status: "error", message: message });
 });
 
