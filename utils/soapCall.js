@@ -1,33 +1,35 @@
 const soapRequest = require('easy-soap-request');
 
-// const fs = require('fs');
+let createXml = (action, body, xmlns) =>{
+    return (
+        `
+        <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="http://CIS/BIR/PUBL/2014/07" ${xmlns}>
+            <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+                <wsa:To>https://wyszukiwarkaregontest.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc</wsa:To>
+                <wsa:Action>${action}</wsa:Action>
+            </soap:Header>
+            <soap:Body>
+                ${body}
+            </soap:Body>
+        </soap:Envelope>
+    `
+    )
+}
 
-// example data
 const url = 'https://wyszukiwarkaregon.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc';
-const sampleHeaders = {
-  'user-agent': 'sampleTest',
-  'Content-Type': 'application/soap+xml;charset=UTF-8',
-  'soapAction': 'http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/Zaloguj',
-};
-// const xml = fs.readFileSync('test/zipCodeEnvelope.xml', 'utf-8');
+let sampleHeaders = {'Content-Type': 'application/soap+xml;charset=UTF-8'};
 
-const xml = `
-<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="http://CIS/BIR/PUBL/2014/07">
-    <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
-        <wsa:To>https://wyszukiwarkaregontest.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc</wsa:To>
-        <wsa:Action>http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/Zaloguj</wsa:Action>
-    </soap:Header>
-    <soap:Body>
-        <ns:Zaloguj>
-            <ns:pKluczUzytkownika>fefb7584d2164650b73e</ns:pKluczUzytkownika>
-        </ns:Zaloguj>
-    </soap:Body>
-</soap:Envelope>
+//login to SOAP first.
+let soapAction = 'http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/Zaloguj';
+let soapBody = `
+    <ns:Zaloguj>
+        <ns:pKluczUzytkownika>fefb7584d2164650b73e</ns:pKluczUzytkownika>
+    </ns:Zaloguj>
 `
 
-// usage of module
+exports.soapCall = async (nip) => {
 
-exports.soapCall = async () => {
+  let xml = createXml(soapAction, soapBody, '')
   
   const { response } = await soapRequest({ url: url, headers: sampleHeaders, xml: xml, timeout: 1000 }); // Optional timeout parameter(milliseconds)
   const { body } = response;
@@ -37,37 +39,24 @@ exports.soapCall = async () => {
 
   const token = body.slice(start, end);
 
-  console.log(body.slice(start, end))
-
   if(token){
 
-    // const url = 'https://wyszukiwarkaregon.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc';
-    const sampleHeaders2 = {
-        'user-agent': 'sampleTest',
-        'Content-Type': 'application/soap+xml;charset=UTF-8',
-        'soapAction': 'http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DaneSzukajPodmioty',
-        'sid': token
-    };
-    // const xml = fs.readFileSync('test/zipCodeEnvelope.xml', 'utf-8');
-
-    const xml2 = `
-        <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="http://CIS/BIR/PUBL/2014/07" xmlns:dat="http://CIS/BIR/PUBL/2014/07/DataContract">
-            <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
-            <wsa:To>https://wyszukiwarkaregontest.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc</wsa:To>
-            <wsa:Action>http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DaneSzukajPodmioty</wsa:Action>
-            </soap:Header>
-                <soap:Body>
-                <ns:DaneSzukajPodmioty>
-                    <ns:pParametryWyszukiwania>
-                        <dat:Nip>8430002804</dat:Nip>
-                    </ns:pParametryWyszukiwania>
-                </ns:DaneSzukajPodmioty>
-            </soap:Body>
-        </soap:Envelope>
+    const soapAction2 = 'http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DaneSzukajPodmioty'
+    const soapBody2 = `
+        <ns:DaneSzukajPodmioty>
+            <ns:pParametryWyszukiwania>
+                <dat:Nip>${nip}</dat:Nip>
+            </ns:pParametryWyszukiwania>
+        </ns:DaneSzukajPodmioty>
     `
+    const soapXmlns = 'xmlns:dat="http://CIS/BIR/PUBL/2014/07/DataContract"'
+
     
+    const xml = createXml(soapAction2, soapBody2, soapXmlns)
     
-    const secondCall = await soapRequest({ url: url, headers: sampleHeaders2, xml: xml2, timeout: 1000 }); // Optional timeout parameter(milliseconds)
+    sampleHeaders = {...sampleHeaders,'sid': token}
+
+    const secondCall = await soapRequest({ url: url, headers: sampleHeaders, xml: xml, timeout: 1000 }); // Optional timeout parameter(milliseconds)
     const data = secondCall.response.body;
 
     const nameStart = data.indexOf(';Nazwa') + 10;
@@ -100,16 +89,10 @@ exports.soapCall = async () => {
         city: city+', '+postal,
         street: street+' '+nr
     })
-    
-
     return{
         name: name,
         city: city+', '+postal,
         street: street
-    }
-    
-    
+    } 
   }
-
- 
 };

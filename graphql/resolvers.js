@@ -370,7 +370,7 @@ module.exports = {
         return{message: 'Faktura została usunięta.'}
     },
     getCustomers: async function(args, req){
-        soap.soapCall()
+        // soap.soapCall('8430003548')
         if(!req.logged){
             const error = new Error('Brak autoryzacji.')
             error.statusCode = 401;
