@@ -67,6 +67,11 @@ module.exports = buildSchema(`
         customer: customer!
         order: [orderItem!]!
     }
+    type customerFetchedData{
+        name: String!
+        city: String!
+        street: String!
+    }
     type returnData{
         message: String!
     }
@@ -80,6 +85,7 @@ module.exports = buildSchema(`
         getCustomer(id: String!): customer!
         getProducts: [product!]!
         getProduct(id: String!): product!
+        fetchCustomerData(nip: String!): customerFetchedData!
     }
 
     type RootMutation{

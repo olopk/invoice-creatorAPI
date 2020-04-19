@@ -370,7 +370,6 @@ module.exports = {
         return{message: 'Faktura została usunięta.'}
     },
     getCustomers: async function(args, req){
-        // soap.soapCall('8430003548')
         if(!req.logged){
             const error = new Error('Brak autoryzacji.')
             error.statusCode = 401;
@@ -395,6 +394,23 @@ module.exports = {
             throw error;
         }
         return singleCustomer
+    },
+    fetchCustomerData: async function({nip}, req){
+        // if(!req.logged){
+        //     const error = new Error('Brak autoryzacji.')
+        //     error.statusCode = 401;
+        //     throw error;
+        // }
+        let customerData;
+        try{
+            customerData = await soap.soapCall(nip)
+        }
+        catch{
+            const error = new Error('Usługa chwilowo nie jest dostępna.');
+            error.statusCode = 404;
+            throw error;
+        }
+        return customerData
     },
     addCustomer: async function({customerInput}, req){
         if(!req.logged){
