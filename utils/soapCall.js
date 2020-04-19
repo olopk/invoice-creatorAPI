@@ -1,8 +1,7 @@
 const soapRequest = require('easy-soap-request');
 
 let createXml = (action, body, xmlns) =>{
-    return (
-        `
+    return (`
         <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="http://CIS/BIR/PUBL/2014/07" ${xmlns}>
             <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
                 <wsa:To>https://wyszukiwarkaregontest.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc</wsa:To>
@@ -12,10 +11,8 @@ let createXml = (action, body, xmlns) =>{
                 ${body}
             </soap:Body>
         </soap:Envelope>
-    `
-    )
+    `)
 }
-
 const url = 'https://wyszukiwarkaregon.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc';
 let sampleHeaders = {'Content-Type': 'application/soap+xml;charset=UTF-8'};
 
@@ -26,7 +23,6 @@ let soapBody = `
         <ns:pKluczUzytkownika>fefb7584d2164650b73e</ns:pKluczUzytkownika>
     </ns:Zaloguj>
 `
-
 exports.soapCall = async (nip) => {
     return new Promise(async (resolve, reject)=>{
         let xml = createXml(soapAction, soapBody, '')
@@ -40,7 +36,6 @@ exports.soapCall = async (nip) => {
         const token = body.slice(start, end);
 
         if(token){
-
             const soapAction2 = 'http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DaneSzukajPodmioty'
             const soapBody2 = `
                 <ns:DaneSzukajPodmioty>
@@ -50,7 +45,6 @@ exports.soapCall = async (nip) => {
                 </ns:DaneSzukajPodmioty>
             `
             const soapXmlns = 'xmlns:dat="http://CIS/BIR/PUBL/2014/07/DataContract"'
-
             
             const xml = createXml(soapAction2, soapBody2, soapXmlns)
             
