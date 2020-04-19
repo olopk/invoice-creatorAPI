@@ -7,6 +7,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 
+//TEMP
+const soap = require('../utils/soapCall');
+
 const productSave = (el) => {
     return new Promise(async (resolve, reject) => {
         if(el._id){
@@ -367,6 +370,7 @@ module.exports = {
         return{message: 'Faktura została usunięta.'}
     },
     getCustomers: async function(args, req){
+        soap.soapCall()
         if(!req.logged){
             const error = new Error('Brak autoryzacji.')
             error.statusCode = 401;
