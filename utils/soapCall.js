@@ -65,12 +65,11 @@ exports.soapCall = async (nip) => {
 
             const postalStart = data.indexOf(';KodPocztowy') + 16;
             const postalEnd = data.indexOf(';/KodPocztowy') -3
-
+            
             const postal = data.slice(postalStart, postalEnd);
 
             const streetStart = data.indexOf(';Ulica') + 14;
             const streetEnd = data.indexOf(';/Ulica') -3
-
             const street = data.slice(streetStart, streetEnd);
 
             const nrStart = data.indexOf(';NrNieruchomosci') + 20;
@@ -81,7 +80,7 @@ exports.soapCall = async (nip) => {
             resolve({
                 name: name,
                 city: city+', '+postal,
-                street: street+' '+nr
+                street: !data.includes('Ulica /') ? street+' '+nr : nr
             })
         }
     })
