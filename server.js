@@ -19,6 +19,9 @@ moment().tz("Europe/Warsaw").format();
 const authRoutes = require('./routes/auth');
 // const invoiceRoutes = require('./routes/invoice');
 
+//import mongodb db credentials.
+const { mongocredentials } = require('./connect');
+
 
 // call the express instance.
 const app = express();
@@ -64,7 +67,7 @@ app.use((error, req, res, next) => {
 
 // start the server
 mongoose
-  .connect('mongodb+srv://ololek:plo@cluster0-0u5ev.mongodb.net/data?retryWrites=true&w=majority')
+  .connect(mongocredentials)
   .then(result => {
       app.listen(port, function() {
         console.log('app started');
