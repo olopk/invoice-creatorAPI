@@ -20,9 +20,12 @@ module.exports = buildSchema(`
         brand: String
         unit: String
         model: String
-        price: Float!
         quantity: Int!
-        total_price: Float
+        price_net: Float!
+        price_gross: Float!
+        total_price_net: Float
+        total_price_gross: Float
+        vat: Int!
     }
     input InvoiceInputData {
         invoice_nr: String!
@@ -49,15 +52,20 @@ module.exports = buildSchema(`
         name: String!
         brand: String
         model: String
-        price: Float!
         quantity: Int
+        price_net: Float!
+        price_gross: Float!
+        vat: Int!
     }
     type orderItem{
         _id: ID!
         product: product!
         quantity: Int!
-        price: Float!
-        total_price: Float!
+        price_net: Float!
+        price_gross: Float!
+        vat: Int!
+        total_price_net: Float!
+        total_price_gross: Float!
     }
     type invoice{
         _id: ID!

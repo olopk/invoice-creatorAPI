@@ -28,22 +28,30 @@ const productSave = (el) => {
             resolve({
                 product: el._id,
                 quantity: el.quantity,
-                price: el.price,
-                total_price: el.total_price
+                price_net: el.price_net,
+                price_gross: el.price_gross,
+                vat: el.vat,
+                total_price_net: el.total_price_net,
+                total_price_gross: el.total_price_gross,
             })
         }else{
             const product = new Product({
                 name: el.name,
                 quantity: -el.quantity,
-                price: el.price,
+                price_net: el.price_net,
+                price_gross: el.price_gross,
+                vat: el.vat,
             })
             product.save()
             .then(res => {
                 resolve({
                     product: product._id,
                     quantity: el.quantity,
-                    price: el.price,
-                    total_price: el.total_price
+                    price_net: el.price_net,
+                    price_gross: el.price_gross,
+                    vat: el.vat,
+                    total_price_net: el.total_price_net,
+                    total_price_gross: el.total_price_gross,
                 })
             })
         }})    
@@ -199,9 +207,12 @@ module.exports = {
          }
 
         orderData.forEach(element => {
+            console.log(element)
             if(validator.isEmpty(element.name)
-            || validator.isEmpty(element.price.toString())
-            || validator.isEmpty(element.total_price.toString())
+            || validator.isEmpty(element.price_net.toString())
+            || validator.isEmpty(element.price_gross.toString())
+            || validator.isEmpty(element.total_price_net.toString())
+            || validator.isEmpty(element.total_price_gross.toString())    
             || validator.isEmpty(element.quantity.toString())){
                 errors.push({message: 'name, price, total price and quantity is required for each product.'})
             }
@@ -288,8 +299,10 @@ module.exports = {
 
         orderData.forEach(element => {
             if(validator.isEmpty(element.name)
-            || validator.isEmpty(element.price.toString())
-            || validator.isEmpty(element.total_price.toString())
+            || validator.isEmpty(element.price_net.toString())
+            || validator.isEmpty(element.price_gross.toString())
+            || validator.isEmpty(element.total_price_net.toString())
+            || validator.isEmpty(element.total_price_gross.toString())    
             || validator.isEmpty(element.quantity.toString())){
                 errors.push({message: 'name, price, total price and quantity is required for each product.'})
             }
@@ -548,7 +561,9 @@ module.exports = {
         const errors = []
         if(validator.isEmpty(productInput.name)
         || validator.isEmpty(productInput.quantity.toString())
-        || validator.isEmpty(productInput.price.toString())){
+        || validator.isEmpty(productInput.vat.toString())
+        || validator.isEmpty(productInput.price_net.toString())
+        || validator.isEmpty(productInput.price_gross.toString())){
             errors.push({message: 'Product data is incomplete.'})
         }
         if(errors.length > 0) {
@@ -557,13 +572,15 @@ module.exports = {
             error.statusCode = 422;
             throw error;
         }
-
+       
         const product = new Product({
             name: productInput.name,
             brand: productInput.brand,
             model: productInput.model,
-            price: productInput.price,
-            quantity: productInput.quantity
+            quantity: productInput.quantity,
+            price_net: el.price_net,
+            price_gross: el.price_gross,
+            vat: el.vat,
         })
 
         await product.save()
@@ -581,7 +598,9 @@ module.exports = {
         }
         if(validator.isEmpty(productInput.name)
         || validator.isEmpty(productInput.quantity.toString())
-        || validator.isEmpty(productInput.price.toString())){
+        || validator.isEmpty(productInput.vat.toString())
+        || validator.isEmpty(productInput.price_net.toString())
+        || validator.isEmpty(productInput.price_gross.toString())){
             errors.push({message: 'Product data is incomplete.'})
         }
         if(errors.length > 0) {
@@ -602,7 +621,9 @@ module.exports = {
 
         product.name = productInput.name;
         product.quantity = productInput.quantity;
-        product.price = productInput.price;
+        product.price_net = productInput.price_net;
+        product.price_gross = productInput.price_gross;
+        product.vat = productInput.vat;
         product.brand = productInput.brand ? productInput.brand : product.brand;
         product.model = productInput.model ? productInput.model : product.model;
 

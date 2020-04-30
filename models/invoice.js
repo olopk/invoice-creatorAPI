@@ -30,11 +30,23 @@ const invoiceSchema = new Schema({
                 type: Number,
                 required: true
             },
-            price:{
+            price_net:{
                 type: Number,
                 required: true
             },
-            total_price:{
+            total_price_net:{
+                type: Number,
+                required: true
+            },
+            price_gross:{
+                type: Number,
+                required: true
+            },
+            total_price_gross:{
+                type: Number,
+                required: true
+            },
+            vat:{
                 type: Number,
                 required: true
             }
