@@ -10,9 +10,10 @@ module.exports = buildSchema(`
     input CustomerInputData{
         _id: ID
         name: String!
-        nip: Int!
+        nip: String!
         city: String!
         street: String!
+        info: String!
     }
     input ProductInputData{
         _id: ID
@@ -43,9 +44,10 @@ module.exports = buildSchema(`
     type customer{
         _id: ID!
         name: String!
-        nip: Int!
+        nip: String!
         city: String!
         street: String!
+        info: String!
     }
     type product{
         _id: ID!

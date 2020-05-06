@@ -207,7 +207,6 @@ module.exports = {
          }
 
         orderData.forEach(element => {
-            console.log(element)
             if(validator.isEmpty(element.name)
             || validator.isEmpty(element.price_net.toString())
             || validator.isEmpty(element.price_gross.toString())
@@ -243,7 +242,8 @@ module.exports = {
                 name: customerData.name,
                 nip: customerData.nip,
                 city: customerData.city,
-                street: customerData.street
+                street: customerData.street,
+                info: customerData.info
             })
             customerId = customer._id;
             await customer.save()
@@ -291,7 +291,7 @@ module.exports = {
          }
 
          if(validator.isEmpty(customerData.name)
-         || validator.isEmpty(customerData.nip.toString())
+         || validator.isEmpty(customerData.nip)
          || validator.isEmpty(customerData.city)
          || validator.isEmpty(customerData.street)){
              errors.push({message: 'Customer data is incomplete.'})
@@ -334,7 +334,8 @@ module.exports = {
                 name: customerData.name,
                 nip: customerData.nip,
                 city: customerData.city,
-                street: customerData.street
+                street: customerData.street,
+                info: customerData.info
             })
             await customer.save()
             customerId = customer._id;
@@ -449,6 +450,7 @@ module.exports = {
             name: customerInput.name,
             nip: customerInput.nip,
             city: customerInput.city,
+            info: customerInput.info,
             street: customerInput.street
         })
         await customer.save()
@@ -488,6 +490,7 @@ module.exports = {
         customer.nip = customerInput.nip;
         customer.city = customerInput.city;
         customer.street = customerInput.street;
+        customer.info = customerInput.info;
 
         await customer.save();
 

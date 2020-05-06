@@ -17,6 +17,10 @@ const customerSchema = new Schema({
     street: {
         type: String,
         required: true
+    },
+    info: {
+        type: String,
+        required: false
     }
 })
 
