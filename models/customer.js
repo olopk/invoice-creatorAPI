@@ -4,19 +4,19 @@ const Schema = mongoose.Schema;
 const customerSchema = new Schema({
     name: {
         type: String,
-        required: true
+        required: false
     },
     nip: {
         type: Number,
-        required: true
+        required: false
     },
     city: {
         type: String,
-        required: true
+        required: false
     },
     street: {
         type: String,
-        required: true
+        required: false
     },
     info: {
         type: String,
