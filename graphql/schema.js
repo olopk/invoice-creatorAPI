@@ -9,11 +9,11 @@ module.exports = buildSchema(`
     }
     input CustomerInputData{
         _id: ID
-        name: String!
-        nip: String!
-        city: String!
-        street: String!
-        info: String!
+        name: String
+        nip: String
+        city: String
+        street: String
+        info: String
     }
     input ProductInputData{
         _id: ID
@@ -35,6 +35,13 @@ module.exports = buildSchema(`
         customer: CustomerInputData!
         order: [ProductInputData!]!
     }
+    input ReceiptInputData {
+        receipt_nr: String!
+        date: String!
+        total_price: Float!
+        customer: CustomerInputData
+        order: [ProductInputData!]!
+    }
     type userData{
         _id: ID
         name: String
@@ -43,11 +50,11 @@ module.exports = buildSchema(`
     }
     type customer{
         _id: ID!
-        name: String!
-        nip: String!
-        city: String!
-        street: String!
-        info: String!
+        name: String
+        nip: String
+        city: String
+        street: String
+        info: String
     }
     type product{
         _id: ID!
@@ -77,6 +84,14 @@ module.exports = buildSchema(`
         customer: customer!
         order: [orderItem!]!
     }
+    type receipt{
+        _id: ID!
+        receipt_nr: String!
+        date: String!
+        total_price: Float!
+        customer: customer
+        order: [orderItem!]!
+    }
     type customerFetchedData{
         name: String!
         city: String!
@@ -100,9 +115,14 @@ module.exports = buildSchema(`
 
     type RootMutation{
         signIn(signInInput: SignInInputData!): returnData!
+
         addInvoice(invoiceInput: InvoiceInputData): returnData!
         editInvoice(id: String!, invoiceInput: InvoiceInputData): returnData!
         delInvoice(id: String!): returnData!
+
+        addReceipt(receiptInput: ReceiptInputData): returnData!
+        editReceipt(id: String!, receiptInput: ReceiptInputData): returnData!
+        delReceipt(id: String!): returnData!
 
         addCustomer(customerInput: CustomerInputData): returnData!
         editCustomer(id: String!, customerInput: CustomerInputData!): returnData!
