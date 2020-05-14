@@ -1,4 +1,5 @@
 const Invoice = require('../models/invoice');
+const Receipt = require('../models/receipt');
 const Product = require('../models/product');
 const Customer = require('../models/customer');
 const User = require('../models/user');
@@ -162,6 +163,21 @@ module.exports = {
             }
         })
         return newAllInvoices
+    },
+    getReceipts: async function(args, req){
+        // if(!req.logged){
+        //     const error = new Error('Brak autoryzacji.')
+        //     error.statusCode = 401;
+        //     throw error;
+        // }
+        const allReceipts = await Receipt.find().populate('customer').populate('order.product')
+        const newAllReceipts = allReceipts.map(receipt => receipt._doc).map(el => {
+            return{
+                ...el,
+                date: el.date.toISOString()
+            }
+        })
+        return newAllReceipts
     },
     getInvoice: async function({id}, req){
         if(!req.logged){
@@ -383,12 +399,202 @@ module.exports = {
 
         return{message: 'Faktura została usunięta.'}
     },
-    getCustomers: async function(args, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
+    addReceipt: async function({receiptInput}, req){
+        // if(!req.logged){
+        //     const error = new Error('Brak autoryzacji.')
+        //     error.statusCode = 401;
+        //     throw error;
+        // }
+
+        const orderData = receiptInput.order;
+        const customerData = receiptInput.customer;
+        const errors = [];
+        // First we make a cumbersome validation..
+        if(validator.isEmpty(receiptInput.receipt_nr)
+         || validator.isEmpty(receiptInput.date)
+         || validator.isEmpty(receiptInput.total_price.toString())){
+             errors.push({message: 'Receipt_nr, date and total_price are required'})
+         }
+
+        orderData.forEach(element => {
+            if(validator.isEmpty(element.name)
+            || validator.isEmpty(element.price_net.toString())
+            || validator.isEmpty(element.price_gross.toString())
+            || validator.isEmpty(element.total_price_net.toString())
+            || validator.isEmpty(element.total_price_gross.toString())    
+            || validator.isEmpty(element.quantity.toString())){
+                errors.push({message: 'name, price, total price and quantity is required for each product.'})
+            }
+        });
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.statusCode = 422;
+            throw error;
+          }
+        //Then we check if the receipt_nr isnt already used.      
+     
+        const receiptArr = await Receipt.find().where('receipt_nr', receiptInput.receipt_nr)
+
+        if(receiptArr.length != 0){
+            const error = new Error('Receipt number is already used')
+            error.statusCode = 409
             throw error;
         }
+
+        // then we need to check if we need to add new customer, or just pick it up from the db.
+        let customerId;
+
+        if(customerData){
+            if(customerData.customer_id){
+                customerId = customerData.customer_id;
+            }else{
+                const customer = new Customer({
+                    name: customerData.name,
+                    city: customerData.city,
+                    street: customerData.street,
+                    info: customerData.info
+                })
+                customerId = customer._id;
+                await customer.save()
+            }
+        }
+
+        // next, we need to check if all products in order are already in DB, if not, we have to add them.
+        let order = await Promise.all(orderData.map( async el => await productSave(el)))
+
+        // Finally we are ready to preapre the Receipt document.
+        const receipt = new Receipt({
+            receipt_nr: receiptInput.receipt_nr,
+            date: receiptInput.date,
+            customer: customerId,
+            order: order,
+            total_price: receiptInput.total_price
+        })   
+        
+        await receipt.save()  
+        return {message: 'Receipt saved successfully'}
+    },
+    editReceipt: async function({id, receiptInput}, req){
+        // if(!req.logged){
+        //     const error = new Error('Brak autoryzacji.')
+        //     error.statusCode = 401;
+        //     throw error;
+        // }
+        //First we check if the receipt _id exists.
+        let receipt;
+        try{
+            receipt = await Receipt.findById(id);
+        }catch{
+            const error = new Error('Receipt with given ID doesnt exists.')
+            error.statusCode = 404
+            throw error;
+        }   
+
+        const orderData = receiptInput.order;
+        const customerData = receiptInput.customer;
+        const errors = [];
+        // First we make a cumbersome validation..
+        if(validator.isEmpty(receiptInput.receipt_nr)
+         || validator.isEmpty(receiptInput.date)
+         || validator.isEmpty(receiptInput.total_price.toString())){
+             errors.push({message: 'Receipt_nr, date and total_price are required'})
+         }
+
+        orderData.forEach(element => {
+            if(validator.isEmpty(element.name)
+            || validator.isEmpty(element.price_net.toString())
+            || validator.isEmpty(element.price_gross.toString())
+            || validator.isEmpty(element.total_price_net.toString())
+            || validator.isEmpty(element.total_price_gross.toString())    
+            || validator.isEmpty(element.quantity.toString())){
+                errors.push({message: 'name, price, total price and quantity is required for each product.'})
+            }
+        });
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.statusCode = 422;
+            throw error;
+          }
+        //Then we check if the receipt_nr is equal to the previous one if not
+        //then we check if it isnt already used in other document.      
+        if(receiptInput.receipt_nr != receipt.receipt_nr){
+            const receiptArr = await Receipt.find().where('receipt_nr', receiptInput.receipt_nr)
+    
+            if(receiptArr.length != 0){
+                const error = new Error('Receipt number is already used')
+                error.statusCode = 409
+                throw error;
+            }
+        }  
+
+        // then we need to check if we need to add new customer, or just pick it up from the db.
+
+        if(customerData){
+            if(customerData._id){
+                receipt.customer = customerData._id;
+            }else{
+                const customer = new Customer({
+                    name: customerData.name,
+                    nip: customerData.nip,
+                    city: customerData.city,
+                    street: customerData.street,
+                    info: customerData.info
+                })
+                await customer.save()
+                customerId = customer._id;
+            }
+        }
+
+        //Now we splice all orders from the array but before that
+        //we recalculate all the existing products in warehouse
+        await Promise.all(receipt.order.map(async el => await productCalc(el)))
+
+        receipt.order = await Promise.all(orderData.map( async el => await productSave(el)))
+        receipt.receipt_nr = receiptInput.receipt_nr; 
+        receipt.date = receiptInput.date;
+        receipt.total_price = receiptInput.total_price;
+        
+        await receipt.save()  
+        return {message: 'Receipt updated successfully'}
+    },
+    delReceipt: async function({id}, req){
+        // if(!req.logged){
+        //     const error = new Error('Brak autoryzacji.')
+        //     error.statusCode = 401;
+        //     throw error;
+        // }
+        const errors = []
+        if(validator.isEmpty(id)){
+            errors.push({message: 'Receipt ID is required.'})
+        }
+        if(errors.length > 0) {
+            const error = new Error('Invalid input.');
+            error.data = errors;
+            error.statusCode = 422;
+            throw error;
+        }
+        const receipt = await Receipt.findById(id);
+        if(!receipt){
+            const error = new Error('Receipt not found.');
+            error.statusCode = 404;
+            throw error;
+        };
+        // console.log(receipt)
+        //we recalculate all the existing products in warehouse
+        await Promise.all(receipt.order.map(async el => await productCalc(el)))
+
+        await Receipt.findByIdAndDelete(id)
+
+        return{message: 'Faktura została usunięta.'}
+    },
+    getCustomers: async function(args, req){
+        // if(!req.logged){
+        //     const error = new Error('Brak autoryzacji.')
+        //     error.statusCode = 401;
+        //     throw error;
+        // }
         const allCustomers = await Customer.find();
         return allCustomers
     },
