@@ -55,6 +55,10 @@ const invoiceSchema = new Schema({
     total_price:{
         type: Number,
         required: true
+    },
+    pay_method:{
+        type: String,
+        required: true
     }
 })
 

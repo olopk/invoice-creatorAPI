@@ -32,6 +32,7 @@ module.exports = buildSchema(`
         invoice_nr: String!
         date: String!
         total_price: Float!
+        pay_method: String!
         customer: CustomerInputData!
         order: [ProductInputData!]!
     }
@@ -39,6 +40,7 @@ module.exports = buildSchema(`
         receipt_nr: String!
         date: String!
         total_price: Float!
+        pay_method: String!
         customer: CustomerInputData
         order: [ProductInputData!]!
     }
@@ -81,6 +83,7 @@ module.exports = buildSchema(`
         invoice_nr: String!
         date: String!
         total_price: Float!
+        pay_method: String!
         customer: customer!
         order: [orderItem!]!
     }
@@ -89,6 +92,7 @@ module.exports = buildSchema(`
         receipt_nr: String!
         date: String!
         total_price: Float!
+        pay_method: String!
         customer: customer
         order: [orderItem!]!
     }
@@ -106,6 +110,8 @@ module.exports = buildSchema(`
         getUser: userData!
         getInvoices: [invoice!]!
         getInvoice(id: String!): invoice!
+        getReceipts: [receipt!]!
+        getReceipt(id: String!): receipt!
         getCustomers: [customer!]!
         getCustomer(id: String!): customer!
         getProducts: [product!]!

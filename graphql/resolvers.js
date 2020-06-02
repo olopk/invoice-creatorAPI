@@ -19,7 +19,7 @@ const productSave = (el) => {
                 newProduct = await Product.findById(el._id)
             }
             catch{
-                const error = new Error('Product not found.');
+                const error = new Error('Product nie został odnaleziony.');
                 error.statusCode = 404;
                 throw error;
             }
@@ -79,7 +79,7 @@ module.exports = {
          }
 
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Niewłaściwe dane wejściowe.');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -113,7 +113,7 @@ module.exports = {
          }
 
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Niewłaściwe dane wejściowe.');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -165,11 +165,11 @@ module.exports = {
         return newAllInvoices
     },
     getReceipts: async function(args, req){
-        // if(!req.logged){
-        //     const error = new Error('Brak autoryzacji.')
-        //     error.statusCode = 401;
-        //     throw error;
-        // }
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const allReceipts = await Receipt.find().populate('customer').populate('order.product')
         const newAllReceipts = allReceipts.map(receipt => receipt._doc).map(el => {
             return{
@@ -192,7 +192,7 @@ module.exports = {
             singleInvoice.date  = singleInvoice.date.toISOString()
         }
         catch{
-            const error = new Error('Invoice not found.');
+            const error = new Error('Faktura nie została odnaleziona.');
             error.statusCode = 404;
             throw error;
         }
@@ -211,15 +211,16 @@ module.exports = {
         // First we make a cumbersome validation..
         if(validator.isEmpty(invoiceInput.invoice_nr)
          || validator.isEmpty(invoiceInput.date)
+         || validator.isEmpty(invoiceInput.pay_method)
          || validator.isEmpty(invoiceInput.total_price.toString())){
-             errors.push({message: 'Invoice_nr, date and total_price are required'})
+             errors.push({message: 'Numer faktury, metoda płatności, data i kwota całkowita - są wymagane'})
          }
 
          if(validator.isEmpty(customerData.name)
          || validator.isEmpty(customerData.nip.toString())
          || validator.isEmpty(customerData.city)
          || validator.isEmpty(customerData.street)){
-             errors.push({message: 'Customer data is incomplete.'})
+             errors.push({message: 'Niepełne dane klienta.'})
          }
 
         orderData.forEach(element => {
@@ -229,11 +230,11 @@ module.exports = {
             || validator.isEmpty(element.total_price_net.toString())
             || validator.isEmpty(element.total_price_gross.toString())    
             || validator.isEmpty(element.quantity.toString())){
-                errors.push({message: 'name, price, total price and quantity is required for each product.'})
+                errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'})
             }
         });
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe.');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -243,7 +244,7 @@ module.exports = {
         const invoiceArr = await Invoice.find().where('invoice_nr', invoiceInput.invoice_nr)
 
         if(invoiceArr.length != 0){
-            const error = new Error('Invoice number is already used')
+            const error = new Error('Ten numer faktury znajduje się już w bazie danych.')
             error.statusCode = 409
             throw error;
         }
@@ -251,8 +252,8 @@ module.exports = {
         // then we need to check if we need to add new customer, or just pick it up from the db.
         let customerId;
 
-        if(customerData.customer_id){
-            customerId = customerData.customer_id;
+        if(customerData._id){
+            customerId = customerData._id;
         }else{
             const customer = new Customer({
                 name: customerData.name,
@@ -274,11 +275,12 @@ module.exports = {
             date: invoiceInput.date,
             customer: customerId,
             order: order,
-            total_price: invoiceInput.total_price
+            total_price: invoiceInput.total_price,
+            pay_method: invoiceInput.pay_method
         })   
         
         await invoice.save()  
-        return {message: 'Invoice saved successfully'}
+        return {message: 'Faktura została dodana poprawnie.'}
     },
     editInvoice: async function({id, invoiceInput}, req){
         if(!req.logged){
@@ -291,7 +293,7 @@ module.exports = {
         try{
             invoice = await Invoice.findById(id);
         }catch{
-            const error = new Error('Invoice with given ID doesnt exists.')
+            const error = new Error('Faktura o podanym ID nie istnieje.')
             error.statusCode = 404
             throw error;
         }   
@@ -302,15 +304,16 @@ module.exports = {
         // First we make a cumbersome validation..
         if(validator.isEmpty(invoiceInput.invoice_nr)
          || validator.isEmpty(invoiceInput.date)
+         || validator.isEmpty(invoiceInput.pay_method)
          || validator.isEmpty(invoiceInput.total_price.toString())){
-             errors.push({message: 'Invoice_nr, date and total_price are required'})
+             errors.push({message: 'Numer faktury, data, metoda płatności i cena końcowa - są wymagane'})
          }
 
          if(validator.isEmpty(customerData.name)
          || validator.isEmpty(customerData.nip)
          || validator.isEmpty(customerData.city)
          || validator.isEmpty(customerData.street)){
-             errors.push({message: 'Customer data is incomplete.'})
+             errors.push({message: 'Dane klienta są niekompletne.'})
          }
 
         orderData.forEach(element => {
@@ -320,11 +323,12 @@ module.exports = {
             || validator.isEmpty(element.total_price_net.toString())
             || validator.isEmpty(element.total_price_gross.toString())    
             || validator.isEmpty(element.quantity.toString())){
-                errors.push({message: 'name, price, total price and quantity is required for each product.'})
+                errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'})
             }
         });
+
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe.');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -335,7 +339,7 @@ module.exports = {
             const invoiceArr = await Invoice.find().where('invoice_nr', invoiceInput.invoice_nr)
     
             if(invoiceArr.length != 0){
-                const error = new Error('Invoice number is already used')
+                const error = new Error('Numer faktury znajduje się już w bazie danych.')
                 error.statusCode = 409
                 throw error;
             }
@@ -365,9 +369,10 @@ module.exports = {
         invoice.invoice_nr = invoiceInput.invoice_nr; 
         invoice.date = invoiceInput.date;
         invoice.total_price = invoiceInput.total_price;
+        invoice.pay_method = invoiceInput.pay_method;
         
         await invoice.save()  
-        return {message: 'Invoice updated successfully'}
+        return {message: 'Faktura została zaktualizowana poprawnie'}
     },
     delInvoice: async function({id}, req){
         if(!req.logged){
@@ -377,17 +382,17 @@ module.exports = {
         }
         const errors = []
         if(validator.isEmpty(id)){
-            errors.push({message: 'Invoice ID is required.'})
+            errors.push({message: 'ID Faktury jest wymagane.'})
         }
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawdiłowe dane wejściowe');
             error.data = errors;
             error.statusCode = 422;
             throw error;
         }
         const invoice = await Invoice.findById(id);
         if(!invoice){
-            const error = new Error('Invoice not found.');
+            const error = new Error('Faktura nie została odnaleziona.');
             error.statusCode = 404;
             throw error;
         };
@@ -412,8 +417,9 @@ module.exports = {
         // First we make a cumbersome validation..
         if(validator.isEmpty(receiptInput.receipt_nr)
          || validator.isEmpty(receiptInput.date)
+         || validator.isEmpty(receiptInput.pay_method)
          || validator.isEmpty(receiptInput.total_price.toString())){
-             errors.push({message: 'Receipt_nr, date and total_price are required'})
+             errors.push({message: 'Numer dokumentu, data, cena i metoda płatności - są wymagane'})
          }
 
         orderData.forEach(element => {
@@ -423,11 +429,11 @@ module.exports = {
             || validator.isEmpty(element.total_price_net.toString())
             || validator.isEmpty(element.total_price_gross.toString())    
             || validator.isEmpty(element.quantity.toString())){
-                errors.push({message: 'name, price, total price and quantity is required for each product.'})
+                errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'})
             }
         });
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -437,7 +443,7 @@ module.exports = {
         const receiptArr = await Receipt.find().where('receipt_nr', receiptInput.receipt_nr)
 
         if(receiptArr.length != 0){
-            const error = new Error('Receipt number is already used')
+            const error = new Error('Numer paragonu znajduje się już w bazie danych')
             error.statusCode = 409
             throw error;
         }
@@ -469,11 +475,12 @@ module.exports = {
             date: receiptInput.date,
             customer: customerId,
             order: order,
-            total_price: receiptInput.total_price
+            total_price: receiptInput.total_price,
+            pay_method: receiptInput.pay_method
         })   
         
         await receipt.save()  
-        return {message: 'Receipt saved successfully'}
+        return {message: 'Paragon został zapisany poprawnie'}
     },
     editReceipt: async function({id, receiptInput}, req){
         // if(!req.logged){
@@ -486,7 +493,7 @@ module.exports = {
         try{
             receipt = await Receipt.findById(id);
         }catch{
-            const error = new Error('Receipt with given ID doesnt exists.')
+            const error = new Error('Paragon o wskazanym nr ID nie istnieje.')
             error.statusCode = 404
             throw error;
         }   
@@ -497,8 +504,9 @@ module.exports = {
         // First we make a cumbersome validation..
         if(validator.isEmpty(receiptInput.receipt_nr)
          || validator.isEmpty(receiptInput.date)
+         || validator.isEmpty(receiptInput.pay_method)
          || validator.isEmpty(receiptInput.total_price.toString())){
-             errors.push({message: 'Receipt_nr, date and total_price are required'})
+             errors.push({message: 'Numer dokumentu, data, cena i metoda płatności - są wymagane'})
          }
 
         orderData.forEach(element => {
@@ -508,11 +516,11 @@ module.exports = {
             || validator.isEmpty(element.total_price_net.toString())
             || validator.isEmpty(element.total_price_gross.toString())    
             || validator.isEmpty(element.quantity.toString())){
-                errors.push({message: 'name, price, total price and quantity is required for each product.'})
+                errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'})
             }
         });
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -523,7 +531,7 @@ module.exports = {
             const receiptArr = await Receipt.find().where('receipt_nr', receiptInput.receipt_nr)
     
             if(receiptArr.length != 0){
-                const error = new Error('Receipt number is already used')
+                const error = new Error('Numer paragonu znajduje się już w bazie danych')
                 error.statusCode = 409
                 throw error;
             }
@@ -555,9 +563,10 @@ module.exports = {
         receipt.receipt_nr = receiptInput.receipt_nr; 
         receipt.date = receiptInput.date;
         receipt.total_price = receiptInput.total_price;
+        receipt.pay_method = receiptInput.pay_method;
         
         await receipt.save()  
-        return {message: 'Receipt updated successfully'}
+        return {message: 'Paragon został zaktualizowany poprawnie'}
     },
     delReceipt: async function({id}, req){
         // if(!req.logged){
@@ -567,17 +576,17 @@ module.exports = {
         // }
         const errors = []
         if(validator.isEmpty(id)){
-            errors.push({message: 'Receipt ID is required.'})
+            errors.push({message: 'ID paragonu jest wymagane'})
         }
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
             error.statusCode = 422;
             throw error;
         }
         const receipt = await Receipt.findById(id);
         if(!receipt){
-            const error = new Error('Receipt not found.');
+            const error = new Error('Paragon nie został znaleziony');
             error.statusCode = 404;
             throw error;
         };
@@ -587,14 +596,14 @@ module.exports = {
 
         await Receipt.findByIdAndDelete(id)
 
-        return{message: 'Faktura została usunięta.'}
+        return{message: 'Paragon został usunięty.'}
     },
     getCustomers: async function(args, req){
-        // if(!req.logged){
-        //     const error = new Error('Brak autoryzacji.')
-        //     error.statusCode = 401;
-        //     throw error;
-        // }
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const allCustomers = await Customer.find();
         return allCustomers
     },
@@ -609,7 +618,7 @@ module.exports = {
             singleCustomer = await Customer.findById(id);
         }
         catch{
-            const error = new Error('Customer not found.');
+            const error = new Error('Klient nie został odnaleziony.');
             error.statusCode = 404;
             throw error;
         }
@@ -643,10 +652,10 @@ module.exports = {
         || validator.isEmpty(customerInput.nip.toString())
         || validator.isEmpty(customerInput.city)
         || validator.isEmpty(customerInput.street)){
-            errors.push({message: 'Customer data is incomplete.'})
+            errors.push({message: 'Dane klienta są niekompletne'})
         }
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -660,7 +669,7 @@ module.exports = {
             street: customerInput.street
         })
         await customer.save()
-        return{message: 'Customer saved successfully'}
+        return{message: 'Klient został zapisany poprawnie'}
     },
     editCustomer: async function({id, customerInput}, req){
         if(!req.logged){
@@ -670,16 +679,16 @@ module.exports = {
         }
         const errors = []
         if(validator.isEmpty(id)){
-            errors.push({message: 'Customer ID is required.'})
+            errors.push({message: 'ID klienta jest wymagane.'})
         }
         if(validator.isEmpty(customerInput.name)
         || validator.isEmpty(customerInput.nip.toString())
         || validator.isEmpty(customerInput.street)
         || validator.isEmpty(customerInput.city)){
-            errors.push({message: 'Customer data is incomplete.'})
+            errors.push({message: 'Dane klienta są niekompletne.'})
         }
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -687,7 +696,7 @@ module.exports = {
 
         let customer = await Customer.findById(id);
         if(!customer){
-            const error = new Error('Customer not found.');
+            const error = new Error('Klient nie został odnaleziony');
             error.statusCode = 404;
             throw error;
         }
@@ -700,7 +709,7 @@ module.exports = {
 
         await customer.save();
 
-        return{message: 'Customer updated successfully'}
+        return{message: 'Klient został zaktualizowany poprawnie'}
     },
     delCustomer: async function({id}, req){
         if(!req.logged){
@@ -710,17 +719,17 @@ module.exports = {
         }
         const errors = []
         if(validator.isEmpty(id)){
-            errors.push({message: 'Customer ID is required.'})
+            errors.push({message: 'ID klienta jest wymagane.'})
         }
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
             error.statusCode = 422;
             throw error;
         }
         const customer = await Customer.exists({_id: id});
         if(!customer){
-            const error = new Error('Customer not found.');
+            const error = new Error('Klient nie został odnaleziony.');
             error.code = 404;
             throw error;
         };
@@ -755,7 +764,7 @@ module.exports = {
             singleProduct = await Product.findById(id);
         }
         catch{
-            const error = new Error('Product not found.');
+            const error = new Error('Produkt nie został odnaleziony.');
             error.statusCode = 404;
             throw error;
         }
@@ -773,10 +782,10 @@ module.exports = {
         || validator.isEmpty(productInput.vat.toString())
         || validator.isEmpty(productInput.price_net.toString())
         || validator.isEmpty(productInput.price_gross.toString())){
-            errors.push({message: 'Product data is incomplete.'})
+            errors.push({message: 'Dane produktu są niekompletne.'})
         }
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Dane wejściowe są niekompletne.');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -793,7 +802,7 @@ module.exports = {
         })
 
         await product.save()
-        return{message: 'Product saved successfully'}
+        return{message: 'Produkt został zapisany poprawnie'}
     },
     editProduct: async function({id, productInput}, req){
         if(!req.logged){
@@ -803,17 +812,17 @@ module.exports = {
         }
         const errors = []
         if(validator.isEmpty(id)){
-            errors.push({message: 'Product ID is required.'})
+            errors.push({message: 'ID produktu jest wymagane.'})
         }
         if(validator.isEmpty(productInput.name)
         || validator.isEmpty(productInput.quantity.toString())
         || validator.isEmpty(productInput.vat.toString())
         || validator.isEmpty(productInput.price_net.toString())
         || validator.isEmpty(productInput.price_gross.toString())){
-            errors.push({message: 'Product data is incomplete.'})
+            errors.push({message: 'Dane produktu są niekompletne.'})
         }
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
             error.statusCode = 422;
             throw error;
@@ -823,7 +832,7 @@ module.exports = {
         try{
             product = await Product.findById(id);
         }catch{
-            const error = new Error('Product not found.');
+            const error = new Error('Produkt nie został odnaleziony.');
             error.statusCode = 404;
             throw error;
         }
@@ -838,7 +847,7 @@ module.exports = {
 
         await product.save();
 
-        return{message: 'Product updated successfully'}
+        return{message: 'Produkt został zaktualizowany poprawnie'}
     },
     delProduct: async function({id}, req){
         if(!req.logged){
@@ -848,17 +857,17 @@ module.exports = {
         }
         const errors = []
         if(validator.isEmpty(id)){
-            errors.push({message: 'Product ID is required.'})
+            errors.push({message: 'ID produktu jest wymagane'})
         }
         if(errors.length > 0) {
-            const error = new Error('Invalid input.');
+            const error = new Error('Nieprawidłowe dane wejściowe.');
             error.data = errors;
             error.statusCode = 422;
             throw error;
         }
         const product = await Product.exists({_id: id});
         if(!product){
-            const error = new Error('Product not found.');
+            const error = new Error('Produkt nie został odnaleziony.');
             error.statusCode = 404;
             throw error;
         };
@@ -874,5 +883,4 @@ module.exports = {
 
         return{message: 'Produkt został usunięty.'}
     },
-    
 }
