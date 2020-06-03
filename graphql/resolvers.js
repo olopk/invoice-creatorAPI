@@ -35,33 +35,34 @@ const productSave = (el) => {
                 total_price_gross: el.total_price_gross,
             })
         }else{
+            console.log(el);
             const productNameIsTaken = await Product.find().where('name', el.name)
             
             if(productNameIsTaken.length > 0){
                 const error = new Error('Produkt o takiej nazwie już istnieje.');
                 error.statusCode = 409;
                 reject(error);
-            }
-
-            const product = new Product({
-                name: el.name,
-                quantity: -el.quantity,
-                price_net: el.price_net,
-                price_gross: el.price_gross,
-                vat: el.vat,
-            })
-            product.save()
-            .then(res => {
-                resolve({
-                    product: product._id,
-                    quantity: el.quantity,
+            }else{
+                const product = new Product({
+                    name: el.name,
+                    quantity: -el.quantity,
                     price_net: el.price_net,
                     price_gross: el.price_gross,
                     vat: el.vat,
-                    total_price_net: el.total_price_net,
-                    total_price_gross: el.total_price_gross,
                 })
-            })
+                product.save()
+                .then(res => {
+                    resolve({
+                        product: product._id,
+                        quantity: el.quantity,
+                        price_net: el.price_net,
+                        price_gross: el.price_gross,
+                        vat: el.vat,
+                        total_price_net: el.total_price_net,
+                        total_price_gross: el.total_price_gross,
+                    })
+                })
+            }
         }})    
     }
 
@@ -369,9 +370,26 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
 
+        let customerId;
+
         if(customerData._id){
-            invoice.customer = customerData._id;
+            customerId = customerData._id;
+            
+            let customer = await Customer.findById(customerId);
+            
+            customer.name = customerData.name,
+            customer.city = customerData.city,
+            customer.street = customerData.street,
+            customer.info = customerData.info
+            await customer.save()
         }else{
+            const nipIsTaken = await Customer.find().where('nip', customerData.nip);
+            if(nipIsTaken.length !== 0 ){
+                const error = new Error('Klient o takim NIPie znajduje się już w bazie danych');
+                error.statusCode = 409
+                throw error              
+            }
+
             const customer = new Customer({
                 name: customerData.name,
                 nip: customerData.nip,
@@ -379,8 +397,8 @@ module.exports = {
                 street: customerData.street,
                 info: customerData.info
             })
-            await customer.save()
             customerId = customer._id;
+            await customer.save()
         }
 
         //Now we splice all orders from the array but before that
@@ -427,12 +445,11 @@ module.exports = {
         return{message: 'Faktura została usunięta.'}
     },
     addReceipt: async function({receiptInput}, req){
-        // if(!req.logged){
-        //     const error = new Error('Brak autoryzacji.')
-        //     error.statusCode = 401;
-        //     throw error;
-        // }
-
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const orderData = receiptInput.order;
         const customerData = receiptInput.customer;
         const errors = [];
@@ -473,19 +490,30 @@ module.exports = {
         // then we need to check if we need to add new customer, or just pick it up from the db.
         let customerId;
 
-        if(customerData){
-            if(customerData.customer_id){
-                customerId = customerData.customer_id;
-            }else{
-                const customer = new Customer({
-                    name: customerData.name,
-                    city: customerData.city,
-                    street: customerData.street,
-                    info: customerData.info
-                })
-                customerId = customer._id;
-                await customer.save()
+        if(customerData._id){
+            customerId = customerData._id;
+            
+            let customer = await Customer.findById(customerId);
+            
+            customer.city = customerData.city,
+            customer.street = customerData.street,
+            customer.info = customerData.info
+            await customer.save()
+        }else{
+            const nameIsTaken = await Customer.find().where('name', customerData.name);
+            if(nameIsTaken.length !== 0 ){
+                const error = new Error('Klient o takiej nazwie znajduje się już w bazie danych');
+                error.statusCode = 409
+                throw error              
             }
+            const customer = new Customer({
+                name: customerData.name,
+                city: customerData.city,
+                street: customerData.street,
+                info: customerData.info
+            })
+            customerId = customer._id;
+            await customer.save()
         }
 
         // next, we need to check if all products in order are already in DB, if not, we have to add them.
@@ -505,11 +533,11 @@ module.exports = {
         return {message: 'Paragon został zapisany poprawnie'}
     },
     editReceipt: async function({id, receiptInput}, req){
-        // if(!req.logged){
-        //     const error = new Error('Brak autoryzacji.')
-        //     error.statusCode = 401;
-        //     throw error;
-        // }
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         //First we check if the receipt _id exists.
         let receipt;
         try{
@@ -561,20 +589,32 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
 
-        if(customerData){
-            if(customerData._id){
-                receipt.customer = customerData._id;
-            }else{
-                const customer = new Customer({
-                    name: customerData.name,
-                    nip: customerData.nip,
-                    city: customerData.city,
-                    street: customerData.street,
-                    info: customerData.info
-                })
-                await customer.save()
-                customerId = customer._id;
+        let customerId;
+
+        if(customerData._id){
+            customerId = customerData._id;
+            
+            let customer = await Customer.findById(customerId);
+            
+            customer.city = customerData.city,
+            customer.street = customerData.street,
+            customer.info = customerData.info
+            await customer.save()
+        }else{
+            const nameIsTaken = await Customer.find().where('name', customerData.name);
+            if(nameIsTaken.length !== 0 ){
+                const error = new Error('Klient o takiej nazwie znajduje się już w bazie danych');
+                error.statusCode = 409
+                throw error              
             }
+            const customer = new Customer({
+                name: customerData.name,
+                city: customerData.city,
+                street: customerData.street,
+                info: customerData.info
+            })
+            customerId = customer._id;
+            await customer.save()
         }
 
         //Now we splice all orders from the array but before that
@@ -591,11 +631,11 @@ module.exports = {
         return {message: 'Paragon został zaktualizowany poprawnie'}
     },
     delReceipt: async function({id}, req){
-        // if(!req.logged){
-        //     const error = new Error('Brak autoryzacji.')
-        //     error.statusCode = 401;
-        //     throw error;
-        // }
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'ID paragonu jest wymagane'})
@@ -647,11 +687,11 @@ module.exports = {
         return singleCustomer
     },
     fetchCustomerData: async function({nip}, req){
-        // if(!req.logged){
-        //     const error = new Error('Brak autoryzacji.')
-        //     error.statusCode = 401;
-        //     throw error;
-        // }
+        if(!req.logged){
+            const error = new Error('Brak autoryzacji.')
+            error.statusCode = 401;
+            throw error;
+        }
         let customerData;
         try{
             customerData = await soap.soapCall(nip)
@@ -759,6 +799,13 @@ module.exports = {
         if(customerInvoices.length > 0){
             const invoiceNr = customerInvoices[0].invoice_nr;
             const error = new Error(`Nie można usunąć klienta, ponieważ jest powiązany z fakturą nr: ${invoiceNr}.`);
+            error.statusCode = 444;
+            throw error;
+        }
+        const customerReceipts = await Receipt.find().where('customer', id)
+        if(customerReceipts.length > 0){
+            const receiptNr = customerReceipts[0].receipt_nr;
+            const error = new Error(`Nie można usunąć klienta, ponieważ jest powiązany z paragonem nr: ${receiptNr}.`);
             error.statusCode = 444;
             throw error;
         }
@@ -897,6 +944,14 @@ module.exports = {
         if(productInvoices.length > 0){
             const invoiceNr = productInvoices[0].invoice_nr;
             const error = new Error(`Nie można usunąć produktu, ponieważ jest powiązany z fakturą nr: ${invoiceNr}.`);
+            error.statusCode = 444;
+            error.code = 444;
+            throw error;
+        }
+        const productReceipts = await Receipt.find().where('order.product', id)
+        if(productReceipts.length > 0){
+            const receiptNr = productReceipts[0].receipt_nr;
+            const error = new Error(`Nie można usunąć produktu, ponieważ jest powiązany z paragonem nr: ${receiptNr}.`);
             error.statusCode = 444;
             error.code = 444;
             throw error;
