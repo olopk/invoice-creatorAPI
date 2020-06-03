@@ -8,7 +8,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 
-//TEMP
 const soap = require('../utils/soapCall');
 
 const productSave = (el) => {
@@ -19,7 +18,7 @@ const productSave = (el) => {
                 newProduct = await Product.findById(el._id)
             }
             catch{
-                const error = new Error('Product nie został odnaleziony.');
+                const error = new Error('Produkt nie został odnaleziony.');
                 error.statusCode = 404;
                 throw error;
             }
@@ -36,6 +35,14 @@ const productSave = (el) => {
                 total_price_gross: el.total_price_gross,
             })
         }else{
+            const productNameIsTaken = await Product.find().where('name', el.name)
+            
+            if(productNameIsTaken.length > 0){
+                const error = new Error('Produkt o takiej nazwie już istnieje.');
+                error.statusCode = 409;
+                reject(error);
+            }
+
             const product = new Product({
                 name: el.name,
                 quantity: -el.quantity,
@@ -241,9 +248,9 @@ module.exports = {
           }
         //Then we check if the invoice_nr isnt already used.      
      
-        const invoiceArr = await Invoice.find().where('invoice_nr', invoiceInput.invoice_nr)
+        const invoiceNrIsTaken = await Invoice.find().where('invoice_nr', invoiceInput.invoice_nr)
 
-        if(invoiceArr.length != 0){
+        if(invoiceNrIsTaken.length !== 0){
             const error = new Error('Ten numer faktury znajduje się już w bazie danych.')
             error.statusCode = 409
             throw error;
@@ -254,7 +261,22 @@ module.exports = {
 
         if(customerData._id){
             customerId = customerData._id;
+            
+            let customer = await Customer.findById(customerId);
+            
+            customer.name = customerData.name,
+            customer.city = customerData.city,
+            customer.street = customerData.street,
+            customer.info = customerData.info
+            await customer.save()
         }else{
+            const nipIsTaken = await Customer.find().where('nip', customerData.nip);
+            if(nipIsTaken.length !== 0 ){
+                const error = new Error('Klient o takim NIPie znajduje się już w bazie danych');
+                error.statusCode = 409
+                throw error              
+            }
+
             const customer = new Customer({
                 name: customerData.name,
                 nip: customerData.nip,
