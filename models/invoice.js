@@ -59,6 +59,11 @@ const invoiceSchema = new Schema({
     pay_method:{
         type: String,
         required: true
+    },
+    pay_date:{
+        type: Date,
+        default: WarsawTimezone,
+        required: false
     }
 })
 

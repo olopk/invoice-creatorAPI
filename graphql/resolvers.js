@@ -35,7 +35,6 @@ const productSave = (el) => {
                 total_price_gross: el.total_price_gross,
             })
         }else{
-            console.log(el);
             const productNameIsTaken = await Product.find().where('name', el.name)
             
             if(productNameIsTaken.length > 0){
@@ -167,7 +166,9 @@ module.exports = {
         const newAllInvoices = allInvoices.map(invoice => invoice._doc).map(el => {
             return{
                 ...el,
-                date: el.date.toISOString()
+                date: el.date.toISOString(),
+                pay_date: el.pay_date ? el.pay_date.toISOString() : null
+
             }
         })
         return newAllInvoices
@@ -299,7 +300,8 @@ module.exports = {
             customer: customerId,
             order: order,
             total_price: invoiceInput.total_price,
-            pay_method: invoiceInput.pay_method
+            pay_method: invoiceInput.pay_method,
+            pay_date: invoiceInput.pay_date ? invoiceInput.pay_date : null
         })   
         
         await invoice.save()  
@@ -410,6 +412,7 @@ module.exports = {
         invoice.date = invoiceInput.date;
         invoice.total_price = invoiceInput.total_price;
         invoice.pay_method = invoiceInput.pay_method;
+        invoice.pay_date = invoiceInput.pay_date ? invoiceInput.pay_date : null
         
         await invoice.save()  
         return {message: 'Faktura została zaktualizowana poprawnie'}

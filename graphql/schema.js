@@ -33,6 +33,7 @@ module.exports = buildSchema(`
         date: String!
         total_price: Float!
         pay_method: String!
+        pay_date: String
         customer: CustomerInputData!
         order: [ProductInputData!]!
     }
@@ -84,6 +85,7 @@ module.exports = buildSchema(`
         date: String!
         total_price: Float!
         pay_method: String!
+        pay_date: String
         customer: customer!
         order: [orderItem!]!
     }
