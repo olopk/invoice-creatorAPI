@@ -20,12 +20,12 @@ const authRoutes = require('./routes/auth');
 // const invoiceRoutes = require('./routes/invoice');
 
 //import mongodb db credentials.
-const { mongocredentials } = require('./connect');
+// const { mongocredentials } = require('./connect');
 
 
 // call the express instance.
 const app = express();
-const port = 8080;
+const port = process.env.PORT || 8080;
 
 
 app.use(bodyParser.json());
@@ -67,7 +67,7 @@ app.use((error, req, res, next) => {
 
 // start the server
 mongoose
-  .connect(mongocredentials)
+  .connect(mongodb+srv://ololek:plo@cluster0-0u5ev.mongodb.net/data?retryWrites=true&w=majority)
   .then(result => {
       app.listen(port, function() {
         console.log('app started');

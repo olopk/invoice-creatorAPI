@@ -1,7 +1,7 @@
 const soapRequest = require('easy-soap-request');
 
 //import userkey for soapcall
-const { soapUserKey } = require('../connect');
+// const { soapUserKey } = require('../connect');
 
 let createXml = (action, body, xmlns) =>{
     return (`
@@ -23,7 +23,7 @@ let sampleHeaders = {'Content-Type': 'application/soap+xml;charset=UTF-8'};
 let soapAction = 'http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/Zaloguj';
 let soapBody = `
     <ns:Zaloguj>
-        <ns:pKluczUzytkownika>${soapUserKey}</ns:pKluczUzytkownika>
+        <ns:pKluczUzytkownika>fefb7584d2164650b73e</ns:pKluczUzytkownika>
     </ns:Zaloguj>
 `
 exports.soapCall = async (nip) => {
