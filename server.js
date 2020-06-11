@@ -69,8 +69,6 @@ app.use((error, req, res, next) => {
 mongoose
   .connect('mongodb+srv://ololek:plo@cluster0-0u5ev.mongodb.net/data?retryWrites=true&w=majority')
   .then(result => {
-      console.log('result', result)
-      console.log('port', port)
       app.listen(port, function() {
         console.log('app started');
       });
