@@ -25,7 +25,7 @@ const authRoutes = require('./routes/auth');
 
 // call the express instance.
 const app = express();
-const port = process.env.PORT || 8080;
+let port = process.env.PORT || 8080;
 
 
 app.use(bodyParser.json());
@@ -69,6 +69,8 @@ app.use((error, req, res, next) => {
 mongoose
   .connect('mongodb+srv:ololek:plo@cluster0-0u5ev.mongodb.net/data?retryWrites=true&w=majority')
   .then(result => {
+      console.log('result', result)
+      console.log('port', port)
       app.listen(port, function() {
         console.log('app started');
       });
