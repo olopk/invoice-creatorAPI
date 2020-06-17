@@ -46,7 +46,7 @@ app.use((req, res, next) => {
 app.use('/graphql', Auth, graphqlHttp({
   schema: graphqlSchema,
   rootValue: graphqlResolver,
-  graphiql: true,
+  graphiql: false,
   customFormatErrorFn(err) {
     if (!err.originalError) {
       return { message: err.message, code: 500 };
@@ -73,4 +73,4 @@ mongoose
         console.log('app started');
       });
   })
-  .catch(err => { console.log(err);  });
+  .catch(err => { console.log(err);});
