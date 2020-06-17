@@ -10,7 +10,6 @@
 
 ## Description
 
-Backend
 </br>
 Features:
 - Authentication ( signup, signin )
@@ -22,7 +21,7 @@ Features:
 
 ## About
 
-Private project for commercial usage.
+Backend of private project for commercial usage.
 
 ## Author
 
