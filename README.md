@@ -19,8 +19,11 @@ Features:
 - Serving data as GraphQL API,
 - Fetching data using SOAP
 </br>
+
 ## About
+
 Private project for commercial usage.
-</br>
-## Author:
+
+## Author
+
 Aleksander Wojas
