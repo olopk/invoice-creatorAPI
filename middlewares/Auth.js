@@ -24,6 +24,7 @@ module.exports = (req, res, next) =>{
             userId: decodedToken.userId,
             name: decodedToken.name
         }
+        req.logged = true;
         next()
         // req.userData = {
         //     userId: 1234,
