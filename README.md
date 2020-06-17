@@ -4,20 +4,23 @@
 
 - NodeJS (ExpressJS)
 - GraphQL
+- SOAP
+- JWT
 - MongoDB (Mongoose)
 
 ## Description
 
 Backend
 </br>
-Application that support:
+Features:
 - Authentication ( signup, signin )
+- API Data validation
 - CRUD for customers, products, invoices, receipts.
-- Preparing PDF documents based on invoices,receipts.
-- Fetching companies data from API, 
+- Serving data as GraphQL API,
+- Fetching data using SOAP
 </br>
-Commercial project
-
+## About
+Private project for commercial usage.
+</br>
 ## Author:
-
 Aleksander Wojas
