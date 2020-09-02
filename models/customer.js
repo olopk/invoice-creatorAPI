@@ -21,6 +21,10 @@ const customerSchema = new Schema({
     info: {
         type: String,
         required: false
+    },
+    hasInvoice:{
+        type: Boolean,
+        required: true
     }
 })
 

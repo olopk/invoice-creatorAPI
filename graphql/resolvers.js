@@ -74,6 +74,40 @@ const productCalc = (el) => {
     })
 }
 
+const customerSave = async ({_id, name, nip, city, street, info}, isInvoice) =>{
+    return new Promise(async (resolve,reject) => {
+        if(_id){            
+            let customer = await Customer.findById(_id);
+            
+            customer.nip = nip ? nip : null
+            customer.name = name
+            customer.city = city
+            customer.street = street
+            customer.info = info
+            customer.hasInvoice = isInvoice ? true : customer.hasInvoice
+            await customer.save()
+            resolve(_id)
+        }else{
+            const nipIsTaken = nip ? await Customer.find().where('nip', nip) : []
+            const nameIsTaken = await Customer.find().where('name', name);
+
+            nipIsTaken.length !== 0 ? reject('NIP') : null
+            nameIsTaken.length !== 0 ? reject('Client') : null
+    
+            const customer = new Customer({
+                name: name,
+                nip: nip ? nip : null,
+                city: city,
+                street: street,
+                info: info,
+                hasInvoice: isInvoice ? true : false
+            })
+            await customer.save()
+            resolve(customer._id);
+        }
+    })
+}
+
 module.exports = {
     signIn: async function({signInInput}){
         const errors = [];
@@ -260,35 +294,13 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
         let customerId;
-
-        if(customerData._id){
-            customerId = customerData._id;
-            
-            let customer = await Customer.findById(customerId);
-            
-            customer.name = customerData.name,
-            customer.city = customerData.city,
-            customer.street = customerData.street,
-            customer.info = customerData.info
-            await customer.save()
-        }else{
-            const nipIsTaken = await Customer.find().where('nip', customerData.nip);
-            if(nipIsTaken.length !== 0 ){
-                const error = new Error('Klient o takim NIPie znajduje się już w bazie danych');
-                error.statusCode = 409
-                throw error              
-            }
-
-            const customer = new Customer({
-                name: customerData.name,
-                nip: customerData.nip,
-                city: customerData.city,
-                street: customerData.street,
-                info: customerData.info
-            })
-            customerId = customer._id;
-            await customer.save()
-        }
+        try{
+            customerId = await customerSave(customerData);
+        }catch(err){
+            const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
+            error.statusCode = 409
+            throw error  
+        }   
 
         // next, we need to check if all products in order are already in DB, if not, we have to add them.
         let order = await Promise.all(orderData.map( async el => await productSave(el)))
@@ -371,37 +383,13 @@ module.exports = {
         }  
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
-
-        let customerId;
-
-        if(customerData._id){
-            customerId = customerData._id;
-            
-            let customer = await Customer.findById(customerId);
-            
-            customer.name = customerData.name,
-            customer.city = customerData.city,
-            customer.street = customerData.street,
-            customer.info = customerData.info
-            await customer.save()
-        }else{
-            const nipIsTaken = await Customer.find().where('nip', customerData.nip);
-            if(nipIsTaken.length !== 0 ){
-                const error = new Error('Klient o takim NIPie znajduje się już w bazie danych');
-                error.statusCode = 409
-                throw error              
-            }
-
-            const customer = new Customer({
-                name: customerData.name,
-                nip: customerData.nip,
-                city: customerData.city,
-                street: customerData.street,
-                info: customerData.info
-            })
-            customerId = customer._id;
-            await customer.save()
-        }
+        try{
+            customerId = await customerSave(customerData);
+        }catch(err){
+            const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
+            error.statusCode = 409
+            throw error  
+        } 
 
         //Now we splice all orders from the array but before that
         //we recalculate all the existing products in warehouse
@@ -492,32 +480,13 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
         let customerId;
-
-        if(customerData._id){
-            customerId = customerData._id;
-            
-            let customer = await Customer.findById(customerId);
-            
-            customer.city = customerData.city,
-            customer.street = customerData.street,
-            customer.info = customerData.info
-            await customer.save()
-        }else{
-            const nameIsTaken = await Customer.find().where('name', customerData.name);
-            if(nameIsTaken.length !== 0 ){
-                const error = new Error('Klient o takiej nazwie znajduje się już w bazie danych');
-                error.statusCode = 409
-                throw error              
-            }
-            const customer = new Customer({
-                name: customerData.name,
-                city: customerData.city,
-                street: customerData.street,
-                info: customerData.info
-            })
-            customerId = customer._id;
-            await customer.save()
-        }
+        try{
+            customerId = await customerSave(customerData);
+        }catch(err){
+            const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
+            error.statusCode = 409
+            throw error  
+        } 
 
         // next, we need to check if all products in order are already in DB, if not, we have to add them.
         let order = await Promise.all(orderData.map( async el => await productSave(el)))
@@ -592,33 +561,13 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
 
-        let customerId;
-
-        if(customerData._id){
-            customerId = customerData._id;
-            
-            let customer = await Customer.findById(customerId);
-            
-            customer.city = customerData.city,
-            customer.street = customerData.street,
-            customer.info = customerData.info
-            await customer.save()
-        }else{
-            const nameIsTaken = await Customer.find().where('name', customerData.name);
-            if(nameIsTaken.length !== 0 ){
-                const error = new Error('Klient o takiej nazwie znajduje się już w bazie danych');
-                error.statusCode = 409
-                throw error              
-            }
-            const customer = new Customer({
-                name: customerData.name,
-                city: customerData.city,
-                street: customerData.street,
-                info: customerData.info
-            })
-            customerId = customer._id;
-            await customer.save()
-        }
+        try{
+            await customerSave(customerData);
+        }catch(err){
+            const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
+            error.statusCode = 409
+            throw error  
+        } 
 
         //Now we splice all orders from the array but before that
         //we recalculate all the existing products in warehouse
