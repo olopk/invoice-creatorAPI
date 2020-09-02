@@ -87,23 +87,41 @@ const customerSave = async ({_id, name, nip, city, street, info}, isInvoice) =>{
             customer.hasInvoice = isInvoice ? true : customer.hasInvoice
             await customer.save()
             resolve(_id)
-        }else{
+        }else if(!name){
+            const clientUnknown = await Customer.findOne({name: 'Klient nieznany'});
+            if(clientUnknown){
+                resolve(clientUnknown._id) 
+            }else{
+                const customer = new Customer({
+                    name: 'Klient nieznany',
+                    hasInvoice: false
+                })
+                await customer.save()
+                resolve(customer._id);
+            }
+
+            
+        }
+        else{
             const nipIsTaken = nip ? await Customer.find().where('nip', nip) : []
             const nameIsTaken = await Customer.find().where('name', name);
 
             nipIsTaken.length !== 0 ? reject('NIP') : null
             nameIsTaken.length !== 0 ? reject('Client') : null
+
+            if(nipIsTaken.length === 0 && nameIsTaken.length === 0){
+                const customer = new Customer({
+                    name: name,
+                    nip: nip ? nip : null,
+                    city: city,
+                    street: street,
+                    info: info,
+                    hasInvoice: isInvoice ? true : false
+                })
+                await customer.save()
+                resolve(customer._id);
+            }
     
-            const customer = new Customer({
-                name: name,
-                nip: nip ? nip : null,
-                city: city,
-                street: street,
-                info: info,
-                hasInvoice: isInvoice ? true : false
-            })
-            await customer.save()
-            resolve(customer._id);
         }
     })
 }
@@ -295,7 +313,7 @@ module.exports = {
         // then we need to check if we need to add new customer, or just pick it up from the db.
         let customerId;
         try{
-            customerId = await customerSave(customerData);
+            customerId = await customerSave(customerData, true);
         }catch(err){
             const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
             error.statusCode = 409
@@ -384,7 +402,7 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
         try{
-            customerId = await customerSave(customerData);
+            await customerSave(customerData, true);
         }catch(err){
             const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
             error.statusCode = 409
