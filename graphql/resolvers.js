@@ -709,14 +709,15 @@ module.exports = {
             error.statusCode = 401;
             throw error;
         }
+        const {name, nip, city, street, info, hasInvoice} = customerInput;
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'ID klienta jest wymagane.'})
         }
-        if(validator.isEmpty(customerInput.name)
-        || validator.isEmpty(customerInput.nip.toString())
-        || validator.isEmpty(customerInput.street)
-        || validator.isEmpty(customerInput.city)){
+        if(validator.isEmpty(name)
+        || (validator.isEmpty(nip) && hasInvoice)
+        || (validator.isEmpty(street)&& hasInvoice)
+        || (validator.isEmpty(city)&& hasInvoice)){
             errors.push({message: 'Dane klienta są niekompletne.'})
         }
         if(errors.length > 0) {
@@ -733,11 +734,11 @@ module.exports = {
             throw error;
         }
 
-        customer.name = customerInput.name;
-        customer.nip = customerInput.nip;
-        customer.city = customerInput.city;
-        customer.street = customerInput.street;
-        customer.info = customerInput.info;
+        customer.name = name;
+        customer.nip = nip;
+        customer.city = city;
+        customer.street = street;
+        customer.info = info;
 
         await customer.save();
 
@@ -881,8 +882,8 @@ module.exports = {
         product.price_net = productInput.price_net;
         product.price_gross = productInput.price_gross;
         product.vat = productInput.vat;
-        product.brand = productInput.brand ? productInput.brand : product.brand;
-        product.model = productInput.model ? productInput.model : product.model;
+        product.brand = productInput.brand ;
+        product.model = productInput.model ;
 
         await product.save();
 
