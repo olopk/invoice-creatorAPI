@@ -641,6 +641,15 @@ module.exports = {
             throw error;
         }
 
+        if(customer.nip != nip){
+            const nipExists = await Customer.findOne({nip: nip})
+            if(nipExists){
+                const error = new Error('Klient o takim NIPie już istnieje');
+                error.statusCode = 409;
+                throw error;
+            }
+        }
+
         customer.name = name;
         customer.nip = nip;
         customer.city = city;
