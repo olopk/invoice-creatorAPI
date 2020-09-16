@@ -21,7 +21,7 @@ const checkAuth = (logged) => {
 const checkIfEmpty = (params) => {
     let isEmpty = false;
     for(let el of params){
-        !el || validator.isEmpty(el.toString()) ? isEmpty = true : null
+        el === null || validator.isEmpty(el.toString()) ? isEmpty = true : null
     }
     return isEmpty;
 }
@@ -94,7 +94,7 @@ const customerSave = async ({_id, name, nip, city, street, info}, isInvoice) =>{
     return new Promise(async (resolve,reject) => {
         if(_id){            
             let customer = await Customer.findById(_id);
-            
+
             customer.nip = nip ? nip : null
             customer.name = name
             customer.city = city
@@ -356,8 +356,9 @@ module.exports = {
         }  
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
+        let customerId;
         try{
-            await customerSave(customerData, true);
+            customerId = await customerSave(customerData, true);
         }catch(err){
             const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
             error.statusCode = 409
@@ -369,7 +370,8 @@ module.exports = {
         await Promise.all(invoice.order.map(async el => await productCalc(el)))
 
         invoice.order = await Promise.all(orderData.map( async el => await productSave(el)))
-        invoice.invoice_nr = invoiceInput.invoice_nr; 
+        invoice.invoice_nr = invoiceInput.invoice_nr;
+        invoice.customer = customerId;
         invoice.date = invoiceInput.date;
         invoice.total_price = invoiceInput.total_price;
         invoice.pay_method = invoiceInput.pay_method;
