@@ -14,6 +14,7 @@ module.exports = buildSchema(`
         city: String
         street: String
         info: String
+        hasInvoice: Boolean
     }
     input ProductInputData{
         _id: ID
@@ -58,6 +59,7 @@ module.exports = buildSchema(`
         city: String
         street: String
         info: String
+        hasInvoice: Boolean
     }
     type product{
         _id: ID!

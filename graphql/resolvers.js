@@ -10,6 +10,22 @@ const validator = require('validator');
 
 const soap = require('../utils/soapCall');
 
+const checkAuth = (logged) => {
+    if(!logged){
+        const error = new Error('Brak autoryzacji.')
+        error.statusCode = 401;
+        throw error;
+    }
+}
+
+const checkIfEmpty = (params) => {
+    let isEmpty = false;
+    for(let el of params){
+        el === null || validator.isEmpty(el.toString()) ? isEmpty = true : null
+    }
+    return isEmpty;
+}
+
 const productSave = (el) => {
     return new Promise(async (resolve, reject) => {
         if(el._id){
@@ -74,16 +90,63 @@ const productCalc = (el) => {
     })
 }
 
+const customerSave = async ({_id, name, nip, city, street, info}, isInvoice) =>{
+    return new Promise(async (resolve,reject) => {
+        if(_id){            
+            let customer = await Customer.findById(_id);
+
+            customer.nip = nip ? nip : null
+            customer.name = name
+            customer.city = city
+            customer.street = street
+            customer.info = info
+            customer.hasInvoice = isInvoice ? true : customer.hasInvoice
+            await customer.save()
+            resolve(_id)
+        }else if(!name){
+            const clientUnknown = await Customer.findOne({name: 'Klient nieznany'});
+            if(clientUnknown){
+                resolve(clientUnknown._id) 
+            }else{
+                const customer = new Customer({
+                    name: 'Klient nieznany',
+                    hasInvoice: false
+                })
+                await customer.save()
+                resolve(customer._id);
+            }            
+        }
+        else{
+            const nipIsTaken = nip ? await Customer.find().where('nip', nip) : []
+            const nameIsTaken = await Customer.find().where('name', name);
+
+            nipIsTaken.length !== 0 ? reject('NIP') : null
+            nameIsTaken.length !== 0 ? reject('Client') : null
+
+            if(nipIsTaken.length === 0 && nameIsTaken.length === 0){
+                const customer = new Customer({
+                    name: name,
+                    nip: nip ? nip : null,
+                    city: city,
+                    street: street,
+                    info: info,
+                    hasInvoice: isInvoice ? true : false
+                })
+                await customer.save()
+                resolve(customer._id);
+            }
+    
+        }
+    })
+}
+
 module.exports = {
     signIn: async function({signInInput}){
         const errors = [];
+        const {name, surname, email, password} = signInInput;
         // First validation..
-        if(validator.isEmpty(signInInput.name)
-         || validator.isEmpty(signInInput.surname)
-         || validator.isEmpty(signInInput.email)
-         || validator.isEmpty(signInInput.password)){
-             errors.push({message: 'Wszystkie pola są wymagane.'})
-         }
+
+        checkIfEmpty([name, surname, email, password]) ? errors.push({message: 'Wszystkie pola są wymagane.'}) : null;
 
         if(errors.length > 0) {
             const error = new Error('Niewłaściwe dane wejściowe.');
@@ -92,7 +155,7 @@ module.exports = {
             throw error;
         }
 
-        const emailExists = await User.exists({email: signInInput.email})
+        const emailExists = await User.exists({email: email})
 
         if(emailExists){
             const error = new Error('Email znajduje się w bazie, przejdź do strony logowania.')
@@ -101,10 +164,10 @@ module.exports = {
         }
 
         const newUser = new User({
-            name: signInInput.name,
-            surname: signInInput.surname,
-            email: signInInput.email,
-            password: signInInput.password
+            name: name,
+            surname: surname,
+            email: email,
+            password: password
         })
 
         await newUser.save()
@@ -113,11 +176,8 @@ module.exports = {
     },
     logIn: async function({email, password}){
         const errors = [];
-        // First validation..
-        if(validator.isEmpty(email)
-         || validator.isEmpty(password)){
-             errors.push({message: 'Wszystkie pola są wymagane.'})
-         }
+        
+        checkIfEmpty([email, password]) ? errors.push({message: 'Wszystkie pola są wymagane.'}) : null
 
         if(errors.length > 0) {
             const error = new Error('Niewłaściwe dane wejściowe.');
@@ -157,11 +217,8 @@ module.exports = {
         return{_id: req.userData.userId, name: req.userData.name}
     },
     getInvoices: async function(args, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
+
         const allInvoices = await Invoice.find().populate('customer').populate('order.product')
         const newAllInvoices = allInvoices.map(invoice => invoice._doc).map(el => {
             return{
@@ -174,11 +231,7 @@ module.exports = {
         return newAllInvoices
     },
     getReceipts: async function(args, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const allReceipts = await Receipt.find().populate('customer').populate('order.product')
         const newAllReceipts = allReceipts.map(receipt => receipt._doc).map(el => {
             return{
@@ -189,11 +242,7 @@ module.exports = {
         return newAllReceipts
     },
     getInvoice: async function({id}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         let singleInvoice;
         try{
             const newSingleInvoice = await Invoice.findById(id).populate('customer').populate('order.product');
@@ -209,38 +258,17 @@ module.exports = {
         return singleInvoice
     },
     addInvoice: async function({invoiceInput}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const orderData = invoiceInput.order;
         const customerData = invoiceInput.customer;
-        const errors = [];
-        // First we make a cumbersome validation..
-        if(validator.isEmpty(invoiceInput.invoice_nr)
-         || validator.isEmpty(invoiceInput.date)
-         || validator.isEmpty(invoiceInput.pay_method)
-         || validator.isEmpty(invoiceInput.total_price.toString())){
-             errors.push({message: 'Numer faktury, metoda płatności, data i kwota całkowita - są wymagane'})
-         }
+        const errors = [];        
 
-         if(validator.isEmpty(customerData.name)
-         || validator.isEmpty(customerData.nip.toString())
-         || validator.isEmpty(customerData.city)
-         || validator.isEmpty(customerData.street)){
-             errors.push({message: 'Niepełne dane klienta.'})
-         }
-
+        checkIfEmpty([invoiceInput.invoice_nr, invoiceInput.date, invoiceInput.pay_method, invoiceInput.total_price]) ? errors.push({message: 'Numer faktury, metoda płatności, data i kwota całkowita - są wymagane'}) : null
+        checkIfEmpty([customerData.name,customerData.nip,customerData.city,customerData.street]) ? errors.push({message: 'Niepełne dane klienta.'}) : null
+        
         orderData.forEach(element => {
-            if(validator.isEmpty(element.name)
-            || validator.isEmpty(element.price_net.toString())
-            || validator.isEmpty(element.price_gross.toString())
-            || validator.isEmpty(element.total_price_net.toString())
-            || validator.isEmpty(element.total_price_gross.toString())    
-            || validator.isEmpty(element.quantity.toString())){
-                errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'})
-            }
+            const {name, price_net, price_gross, total_price_net, total_price_gross, quantity} = element;
+            checkIfEmpty([name, price_net, price_gross, total_price_net, total_price_gross, quantity]) ? errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'}) : null
         });
         if(errors.length > 0) {
             const error = new Error('Nieprawidłowe dane wejściowe.');
@@ -250,9 +278,9 @@ module.exports = {
           }
         //Then we check if the invoice_nr isnt already used.      
      
-        const invoiceNrIsTaken = await Invoice.find().where('invoice_nr', invoiceInput.invoice_nr)
+        const invoiceNrIsTaken = await Invoice.findOne({invoice_nr: invoiceInput.invoice_nr})
 
-        if(invoiceNrIsTaken.length !== 0){
+        if(invoiceNrIsTaken){
             const error = new Error('Ten numer faktury znajduje się już w bazie danych.')
             error.statusCode = 409
             throw error;
@@ -260,35 +288,13 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
         let customerId;
-
-        if(customerData._id){
-            customerId = customerData._id;
-            
-            let customer = await Customer.findById(customerId);
-            
-            customer.name = customerData.name,
-            customer.city = customerData.city,
-            customer.street = customerData.street,
-            customer.info = customerData.info
-            await customer.save()
-        }else{
-            const nipIsTaken = await Customer.find().where('nip', customerData.nip);
-            if(nipIsTaken.length !== 0 ){
-                const error = new Error('Klient o takim NIPie znajduje się już w bazie danych');
-                error.statusCode = 409
-                throw error              
-            }
-
-            const customer = new Customer({
-                name: customerData.name,
-                nip: customerData.nip,
-                city: customerData.city,
-                street: customerData.street,
-                info: customerData.info
-            })
-            customerId = customer._id;
-            await customer.save()
-        }
+        try{
+            customerId = await customerSave(customerData, true);
+        }catch(err){
+            const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
+            error.statusCode = 409
+            throw error  
+        }   
 
         // next, we need to check if all products in order are already in DB, if not, we have to add them.
         let order = await Promise.all(orderData.map( async el => await productSave(el)))
@@ -308,11 +314,7 @@ module.exports = {
         return {message: 'Faktura została dodana poprawnie.'}
     },
     editInvoice: async function({id, invoiceInput}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         //First we check if the invoice _id exists.
         let invoice;
         try{
@@ -326,30 +328,13 @@ module.exports = {
         const orderData = invoiceInput.order;
         const customerData = invoiceInput.customer;
         const errors = [];
-        // First we make a cumbersome validation..
-        if(validator.isEmpty(invoiceInput.invoice_nr)
-         || validator.isEmpty(invoiceInput.date)
-         || validator.isEmpty(invoiceInput.pay_method)
-         || validator.isEmpty(invoiceInput.total_price.toString())){
-             errors.push({message: 'Numer faktury, data, metoda płatności i cena końcowa - są wymagane'})
-         }
-
-         if(validator.isEmpty(customerData.name)
-         || validator.isEmpty(customerData.nip)
-         || validator.isEmpty(customerData.city)
-         || validator.isEmpty(customerData.street)){
-             errors.push({message: 'Dane klienta są niekompletne.'})
-         }
-
+        
+        checkIfEmpty([invoiceInput.invoice_nr, invoiceInput.date, invoiceInput.pay_method, invoiceInput.total_price]) ? errors.push({message: 'Numer faktury, metoda płatności, data i kwota całkowita - są wymagane'}) : null
+        checkIfEmpty([customerData.name,customerData.nip,customerData.city,customerData.street]) ? errors.push({message: 'Niepełne dane klienta.'}) : null
+        
         orderData.forEach(element => {
-            if(validator.isEmpty(element.name)
-            || validator.isEmpty(element.price_net.toString())
-            || validator.isEmpty(element.price_gross.toString())
-            || validator.isEmpty(element.total_price_net.toString())
-            || validator.isEmpty(element.total_price_gross.toString())    
-            || validator.isEmpty(element.quantity.toString())){
-                errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'})
-            }
+            const {name, price_net, price_gross, total_price_net, total_price_gross, quantity} = element;
+            checkIfEmpty([name, price_net, price_gross, total_price_net, total_price_gross, quantity]) ? errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'}) : null
         });
 
         if(errors.length > 0) {
@@ -361,9 +346,9 @@ module.exports = {
         //Then we check if the invoice_nr is equal to the previous one if not
         //then we check if it isnt already used in other document.      
         if(invoiceInput.invoice_nr != invoice.invoice_nr){
-            const invoiceArr = await Invoice.find().where('invoice_nr', invoiceInput.invoice_nr)
+            const invoiceArr = await Invoice.findOne({invoice_nr: invoiceInput.invoice_nr})
     
-            if(invoiceArr.length != 0){
+            if(invoiceArr){
                 const error = new Error('Numer faktury znajduje się już w bazie danych.')
                 error.statusCode = 409
                 throw error;
@@ -371,44 +356,22 @@ module.exports = {
         }  
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
-
         let customerId;
-
-        if(customerData._id){
-            customerId = customerData._id;
-            
-            let customer = await Customer.findById(customerId);
-            
-            customer.name = customerData.name,
-            customer.city = customerData.city,
-            customer.street = customerData.street,
-            customer.info = customerData.info
-            await customer.save()
-        }else{
-            const nipIsTaken = await Customer.find().where('nip', customerData.nip);
-            if(nipIsTaken.length !== 0 ){
-                const error = new Error('Klient o takim NIPie znajduje się już w bazie danych');
-                error.statusCode = 409
-                throw error              
-            }
-
-            const customer = new Customer({
-                name: customerData.name,
-                nip: customerData.nip,
-                city: customerData.city,
-                street: customerData.street,
-                info: customerData.info
-            })
-            customerId = customer._id;
-            await customer.save()
-        }
+        try{
+            customerId = await customerSave(customerData, true);
+        }catch(err){
+            const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
+            error.statusCode = 409
+            throw error  
+        } 
 
         //Now we splice all orders from the array but before that
         //we recalculate all the existing products in warehouse
         await Promise.all(invoice.order.map(async el => await productCalc(el)))
 
         invoice.order = await Promise.all(orderData.map( async el => await productSave(el)))
-        invoice.invoice_nr = invoiceInput.invoice_nr; 
+        invoice.invoice_nr = invoiceInput.invoice_nr;
+        invoice.customer = customerId;
         invoice.date = invoiceInput.date;
         invoice.total_price = invoiceInput.total_price;
         invoice.pay_method = invoiceInput.pay_method;
@@ -418,11 +381,7 @@ module.exports = {
         return {message: 'Faktura została zaktualizowana poprawnie'}
     },
     delInvoice: async function({id}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'ID Faktury jest wymagane.'})
@@ -448,32 +407,18 @@ module.exports = {
         return{message: 'Faktura została usunięta.'}
     },
     addReceipt: async function({receiptInput}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const orderData = receiptInput.order;
         const customerData = receiptInput.customer;
         const errors = [];
-        // First we make a cumbersome validation..
-        if(validator.isEmpty(receiptInput.receipt_nr)
-         || validator.isEmpty(receiptInput.date)
-         || validator.isEmpty(receiptInput.pay_method)
-         || validator.isEmpty(receiptInput.total_price.toString())){
-             errors.push({message: 'Numer dokumentu, data, cena i metoda płatności - są wymagane'})
-         }
+        
+        checkIfEmpty([receiptInput.receipt_nr,receiptInput.date,receiptInput.pay_method,receiptInput.total_price]) ? errors.push({message: 'Numer dokumentu, data, cena i metoda płatności - są wymagane'}) : null
 
         orderData.forEach(element => {
-            if(validator.isEmpty(element.name)
-            || validator.isEmpty(element.price_net.toString())
-            || validator.isEmpty(element.price_gross.toString())
-            || validator.isEmpty(element.total_price_net.toString())
-            || validator.isEmpty(element.total_price_gross.toString())    
-            || validator.isEmpty(element.quantity.toString())){
-                errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'})
-            }
+            const {name, price_net, price_gross, total_price_net, total_price_gross, quantity} = element;
+            checkIfEmpty([name, price_net, price_gross, total_price_net, total_price_gross, quantity]) ? errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'}) : null
         });
+
         if(errors.length > 0) {
             const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
@@ -482,9 +427,9 @@ module.exports = {
           }
         //Then we check if the receipt_nr isnt already used.      
      
-        const receiptArr = await Receipt.find().where('receipt_nr', receiptInput.receipt_nr)
+        const receiptArr = await Receipt.findOne({receipt_nr: receiptInput.receipt_nr})
 
-        if(receiptArr.length != 0){
+        if(receiptArr){
             const error = new Error('Numer paragonu znajduje się już w bazie danych')
             error.statusCode = 409
             throw error;
@@ -492,32 +437,13 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
         let customerId;
-
-        if(customerData._id){
-            customerId = customerData._id;
-            
-            let customer = await Customer.findById(customerId);
-            
-            customer.city = customerData.city,
-            customer.street = customerData.street,
-            customer.info = customerData.info
-            await customer.save()
-        }else{
-            const nameIsTaken = await Customer.find().where('name', customerData.name);
-            if(nameIsTaken.length !== 0 ){
-                const error = new Error('Klient o takiej nazwie znajduje się już w bazie danych');
-                error.statusCode = 409
-                throw error              
-            }
-            const customer = new Customer({
-                name: customerData.name,
-                city: customerData.city,
-                street: customerData.street,
-                info: customerData.info
-            })
-            customerId = customer._id;
-            await customer.save()
-        }
+        try{
+            customerId = await customerSave(customerData);
+        }catch(err){
+            const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
+            error.statusCode = 409
+            throw error  
+        } 
 
         // next, we need to check if all products in order are already in DB, if not, we have to add them.
         let order = await Promise.all(orderData.map( async el => await productSave(el)))
@@ -536,11 +462,7 @@ module.exports = {
         return {message: 'Paragon został zapisany poprawnie'}
     },
     editReceipt: async function({id, receiptInput}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         //First we check if the receipt _id exists.
         let receipt;
         try{
@@ -554,24 +476,14 @@ module.exports = {
         const orderData = receiptInput.order;
         const customerData = receiptInput.customer;
         const errors = [];
-        // First we make a cumbersome validation..
-        if(validator.isEmpty(receiptInput.receipt_nr)
-         || validator.isEmpty(receiptInput.date)
-         || validator.isEmpty(receiptInput.pay_method)
-         || validator.isEmpty(receiptInput.total_price.toString())){
-             errors.push({message: 'Numer dokumentu, data, cena i metoda płatności - są wymagane'})
-         }
+
+        checkIfEmpty([receiptInput.receipt_nr,receiptInput.date,receiptInput.pay_method,receiptInput.total_price]) ? errors.push({message: 'Numer dokumentu, data, cena i metoda płatności - są wymagane'}) : null
 
         orderData.forEach(element => {
-            if(validator.isEmpty(element.name)
-            || validator.isEmpty(element.price_net.toString())
-            || validator.isEmpty(element.price_gross.toString())
-            || validator.isEmpty(element.total_price_net.toString())
-            || validator.isEmpty(element.total_price_gross.toString())    
-            || validator.isEmpty(element.quantity.toString())){
-                errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'})
-            }
+            const {name, price_net, price_gross, total_price_net, total_price_gross, quantity} = element;
+            checkIfEmpty([name, price_net, price_gross, total_price_net, total_price_gross, quantity]) ? errors.push({message: 'Nazwa, cena netto brutto i całkowita oraz ilość - są wymagane .'}) : null
         });
+
         if(errors.length > 0) {
             const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
@@ -581,9 +493,9 @@ module.exports = {
         //Then we check if the receipt_nr is equal to the previous one if not
         //then we check if it isnt already used in other document.      
         if(receiptInput.receipt_nr != receipt.receipt_nr){
-            const receiptArr = await Receipt.find().where('receipt_nr', receiptInput.receipt_nr)
+            const receiptArr = await Receipt.findOne({receipt_nr: receiptInput.receipt_nr})
     
-            if(receiptArr.length != 0){
+            if(receiptArr){
                 const error = new Error('Numer paragonu znajduje się już w bazie danych')
                 error.statusCode = 409
                 throw error;
@@ -592,33 +504,13 @@ module.exports = {
 
         // then we need to check if we need to add new customer, or just pick it up from the db.
 
-        let customerId;
-
-        if(customerData._id){
-            customerId = customerData._id;
-            
-            let customer = await Customer.findById(customerId);
-            
-            customer.city = customerData.city,
-            customer.street = customerData.street,
-            customer.info = customerData.info
-            await customer.save()
-        }else{
-            const nameIsTaken = await Customer.find().where('name', customerData.name);
-            if(nameIsTaken.length !== 0 ){
-                const error = new Error('Klient o takiej nazwie znajduje się już w bazie danych');
-                error.statusCode = 409
-                throw error              
-            }
-            const customer = new Customer({
-                name: customerData.name,
-                city: customerData.city,
-                street: customerData.street,
-                info: customerData.info
-            })
-            customerId = customer._id;
-            await customer.save()
-        }
+        try{
+            await customerSave(customerData);
+        }catch(err){
+            const error = new Error(`Klient ${err === 'Client' ? 'takiej nazwie' : 'takim NIPie'} znajduje się już w bazie danych`);
+            error.statusCode = 409
+            throw error  
+        } 
 
         //Now we splice all orders from the array but before that
         //we recalculate all the existing products in warehouse
@@ -634,11 +526,7 @@ module.exports = {
         return {message: 'Paragon został zaktualizowany poprawnie'}
     },
     delReceipt: async function({id}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'ID paragonu jest wymagane'})
@@ -664,20 +552,12 @@ module.exports = {
         return{message: 'Paragon został usunięty.'}
     },
     getCustomers: async function(args, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const allCustomers = await Customer.find();
         return allCustomers
     },
     getCustomer: async function({id}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         let singleCustomer;
         try{
             singleCustomer = await Customer.findById(id);
@@ -690,11 +570,7 @@ module.exports = {
         return singleCustomer
     },
     fetchCustomerData: async function({nip}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         let customerData;
         try{
             customerData = await soap.soapCall(nip)
@@ -707,17 +583,11 @@ module.exports = {
         return customerData
     },
     addCustomer: async function({customerInput}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
+        const {name, nip, city, street, info} = customerInput;
         const errors = []
-        if(validator.isEmpty(customerInput.name)
-        || validator.isEmpty(customerInput.nip.toString())
-        || validator.isEmpty(customerInput.city)
-        || validator.isEmpty(customerInput.street)){
-            errors.push({message: 'Dane klienta są niekompletne'})
+        if(validator.isEmpty(customerInput.name)){
+            errors.push({message: 'Klient musi posiadać nazwę'})
         }
         if(errors.length > 0) {
             const error = new Error('Nieprawidłowe dane wejściowe');
@@ -726,30 +596,37 @@ module.exports = {
             throw error;
         }
 
-        const customer = new Customer({
-            name: customerInput.name,
-            nip: customerInput.nip,
-            city: customerInput.city,
-            info: customerInput.info,
-            street: customerInput.street
-        })
-        await customer.save()
-        return{message: 'Klient został zapisany poprawnie'}
-    },
-    editCustomer: async function({id, customerInput}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
+        const nipIsTaken = nip ? await Customer.findOne({nip: nip}) : null
+        const nameIsTaken = await Customer.findOne({name: name})
+
+        if(nipIsTaken || nameIsTaken){
+            const error = new Error(`${nipIsTaken ? 'Klient o takim NIPie już istnieje' : 'Klient o takiej nazwie już istnieje'}`);
+            error.statusCode = 409;
             throw error;
         }
+
+        const customer = new Customer({
+            name: name,
+            nip: nip,
+            city: city,
+            street: street,
+            info: info,
+            hasInvoice: nip ? true : false
+        })
+        await customer.save()
+        return{message: 'Klient został dodany poprawnie'}
+    },
+    editCustomer: async function({id, customerInput}, req){
+        checkAuth(req.logged);
+        const {name, nip, city, street, info, hasInvoice} = customerInput;
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'ID klienta jest wymagane.'})
         }
-        if(validator.isEmpty(customerInput.name)
-        || validator.isEmpty(customerInput.nip.toString())
-        || validator.isEmpty(customerInput.street)
-        || validator.isEmpty(customerInput.city)){
+        if(validator.isEmpty(name)
+        || (validator.isEmpty(nip) && hasInvoice)
+        || (validator.isEmpty(street)&& hasInvoice)
+        || (validator.isEmpty(city)&& hasInvoice)){
             errors.push({message: 'Dane klienta są niekompletne.'})
         }
         if(errors.length > 0) {
@@ -766,22 +643,27 @@ module.exports = {
             throw error;
         }
 
-        customer.name = customerInput.name;
-        customer.nip = customerInput.nip;
-        customer.city = customerInput.city;
-        customer.street = customerInput.street;
-        customer.info = customerInput.info;
+        if(customer.nip != nip){
+            const nipExists = await Customer.findOne({nip: nip})
+            if(nipExists){
+                const error = new Error('Klient o takim NIPie już istnieje');
+                error.statusCode = 409;
+                throw error;
+            }
+        }
+
+        customer.name = name;
+        customer.nip = nip;
+        customer.city = city;
+        customer.street = street;
+        customer.info = info;
 
         await customer.save();
 
         return{message: 'Klient został zaktualizowany poprawnie'}
     },
     delCustomer: async function({id}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'ID klienta jest wymagane.'})
@@ -817,20 +699,12 @@ module.exports = {
         return{message: 'Klient został usunięty.'}
     },
     getProducts: async function(args, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const allProducts = await Product.find();
         return allProducts
     },
     getProduct: async function({id}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         let singleProduct;
         try{
             singleProduct = await Product.findById(id);
@@ -843,56 +717,49 @@ module.exports = {
         return singleProduct
     },
     addProduct: async function({productInput}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const errors = []
-        if(validator.isEmpty(productInput.name)
-        || validator.isEmpty(productInput.quantity.toString())
-        || validator.isEmpty(productInput.vat.toString())
-        || validator.isEmpty(productInput.price_net.toString())
-        || validator.isEmpty(productInput.price_gross.toString())){
-            errors.push({message: 'Dane produktu są niekompletne.'})
-        }
+        const {name, brand, model, quantity, vat, price_net, price_gross} = productInput;
+        
+        checkIfEmpty([name, quantity, vat, price_gross, price_net]) ? errors.push({message: 'Dane produktu są niekompletne.'}) : null
         if(errors.length > 0) {
             const error = new Error('Dane wejściowe są niekompletne.');
             error.data = errors;
             error.statusCode = 422;
             throw error;
         }
+
+        const nameIsTaken = await Product.findOne({name: name})
+
+        if(nameIsTaken){
+            const error = new Error('Product o takiej nazwie już istnieje');
+            error.statusCode = 409;
+            throw error;
+        }
        
         const product = new Product({
-            name: productInput.name,
-            brand: productInput.brand,
-            model: productInput.model,
-            quantity: productInput.quantity,
-            price_net: el.price_net,
-            price_gross: el.price_gross,
-            vat: el.vat,
+            name: name,
+            brand: brand,
+            model: model,
+            quantity: quantity,
+            price_net: price_net,
+            price_gross: price_gross,
+            vat: vat,
         })
 
         await product.save()
-        return{message: 'Produkt został zapisany poprawnie'}
+        return{message: 'Produkt został dodany poprawnie'}
     },
     editProduct: async function({id, productInput}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'ID produktu jest wymagane.'})
         }
-        if(validator.isEmpty(productInput.name)
-        || validator.isEmpty(productInput.quantity.toString())
-        || validator.isEmpty(productInput.vat.toString())
-        || validator.isEmpty(productInput.price_net.toString())
-        || validator.isEmpty(productInput.price_gross.toString())){
-            errors.push({message: 'Dane produktu są niekompletne.'})
-        }
+        const {name, brand, model, quantity, vat, price_net, price_gross} = productInput;
+        
+        checkIfEmpty([name, quantity, vat, price_gross, price_net]) ? errors.push({message: 'Dane produktu są niekompletne.'}) : null
+
         if(errors.length > 0) {
             const error = new Error('Nieprawidłowe dane wejściowe');
             error.data = errors;
@@ -914,19 +781,15 @@ module.exports = {
         product.price_net = productInput.price_net;
         product.price_gross = productInput.price_gross;
         product.vat = productInput.vat;
-        product.brand = productInput.brand ? productInput.brand : product.brand;
-        product.model = productInput.model ? productInput.model : product.model;
+        product.brand = productInput.brand ;
+        product.model = productInput.model ;
 
         await product.save();
 
         return{message: 'Produkt został zaktualizowany poprawnie'}
     },
     delProduct: async function({id}, req){
-        if(!req.logged){
-            const error = new Error('Brak autoryzacji.')
-            error.statusCode = 401;
-            throw error;
-        }
+        checkAuth(req.logged);
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'ID produktu jest wymagane'})

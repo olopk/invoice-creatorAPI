@@ -23,7 +23,7 @@ let sampleHeaders = {'Content-Type': 'application/soap+xml;charset=UTF-8'};
 let soapAction = 'http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/Zaloguj';
 let soapBody = `
     <ns:Zaloguj>
-        <ns:pKluczUzytkownika>fefb7584d2164650b73e</ns:pKluczUzytkownika>
+        <ns:pKluczUzytkownika>${process.env.SOAPKEY}</ns:pKluczUzytkownika>
     </ns:Zaloguj>
 `
 exports.soapCall = async (nip) => {
