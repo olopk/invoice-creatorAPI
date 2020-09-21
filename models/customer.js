@@ -1,13 +1,16 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+const moment = require('moment-timezone');
+const WarsawTimezone = moment.tz(Date.now(), 'Europe/Warsaw')
+
 const customerSchema = new Schema({
     name: {
         type: String,
         required: false
     },
     nip: {
-        type: Number,
+        type: String,
         required: false
     },
     city: {
@@ -16,6 +19,15 @@ const customerSchema = new Schema({
     },
     street: {
         type: String,
+        required: false
+    },
+    phonenr: {
+        type: String,
+        required: false
+    },
+    selldate: {
+        type: Date,
+        default: WarsawTimezone,
         required: false
     },
     info: {

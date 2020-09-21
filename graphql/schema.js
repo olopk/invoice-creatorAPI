@@ -13,6 +13,8 @@ module.exports = buildSchema(`
         nip: String
         city: String
         street: String
+        phonenr: String
+        selldate: String
         info: String
         hasInvoice: Boolean
     }
@@ -58,6 +60,8 @@ module.exports = buildSchema(`
         nip: String
         city: String
         street: String
+        phonenr: String
+        selldate: String
         info: String
         hasInvoice: Boolean
     }

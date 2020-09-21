@@ -90,15 +90,17 @@ const productCalc = (el) => {
     })
 }
 
-const customerSave = async ({_id, name, nip, city, street, info}, isInvoice) =>{
+const customerSave = async ({_id, name, nip, city, street, phonenr,selldate, info}, isInvoice) =>{
     return new Promise(async (resolve,reject) => {
         if(_id){            
             let customer = await Customer.findById(_id);
 
-            customer.nip = nip ? nip : null
+            customer.nip = nip ? nip : 'nie dotyczy'
             customer.name = name
             customer.city = city
             customer.street = street
+            customer.phonenr = phonenr ? phonenr : null
+            customer.selldate = selldate ? selldate : null
             customer.info = info
             customer.hasInvoice = isInvoice ? true : customer.hasInvoice
             await customer.save()
@@ -117,7 +119,8 @@ const customerSave = async ({_id, name, nip, city, street, info}, isInvoice) =>{
             }            
         }
         else{
-            const nipIsTaken = nip ? await Customer.find().where('nip', nip) : []
+            // const nipIsTaken = nip ? await Customer.find().where('nip', nip) : []
+            const nipIsTaken = nip ? await Customer.find({$and: [{nip: nip},{nip: {$ne : "nie dotyczy"}}]}) : []
             const nameIsTaken = await Customer.find().where('name', name);
 
             nipIsTaken.length !== 0 ? reject('NIP') : null
@@ -129,6 +132,8 @@ const customerSave = async ({_id, name, nip, city, street, info}, isInvoice) =>{
                     nip: nip ? nip : null,
                     city: city,
                     street: street,
+                    phonenr : phonenr ? phonenr : null,
+                    selldate : selldate ? selldate : null,
                     info: info,
                     hasInvoice: isInvoice ? true : false
                 })
@@ -554,7 +559,13 @@ module.exports = {
     getCustomers: async function(args, req){
         checkAuth(req.logged);
         const allCustomers = await Customer.find();
-        return allCustomers
+        const newAllCustomers = allCustomers.map(el => el._doc).map(el => {
+            return{
+                ...el,
+                selldate: el.selldate.toISOString()
+            }
+        })
+        return newAllCustomers
     },
     getCustomer: async function({id}, req){
         checkAuth(req.logged);
@@ -584,7 +595,7 @@ module.exports = {
     },
     addCustomer: async function({customerInput}, req){
         checkAuth(req.logged);
-        const {name, nip, city, street, info} = customerInput;
+        const {name, nip, city, street, selldate, phonenr, info} = customerInput;
         const errors = []
         if(validator.isEmpty(customerInput.name)){
             errors.push({message: 'Klient musi posiadać nazwę'})
@@ -596,7 +607,8 @@ module.exports = {
             throw error;
         }
 
-        const nipIsTaken = nip ? await Customer.findOne({nip: nip}) : null
+        const nipIsTaken = nip ? await Customer.findOne({$and: [{nip: nip},{nip: {$ne : "nie dotyczy"}}]}) : null
+        // const nipIsTaken = nip ? await Customer.findOne({nip: nip}) : null
         const nameIsTaken = await Customer.findOne({name: name})
 
         if(nipIsTaken || nameIsTaken){
@@ -610,6 +622,8 @@ module.exports = {
             nip: nip,
             city: city,
             street: street,
+            phonenr: phonenr,
+            selldate: selldate,
             info: info,
             hasInvoice: nip ? true : false
         })
@@ -618,7 +632,7 @@ module.exports = {
     },
     editCustomer: async function({id, customerInput}, req){
         checkAuth(req.logged);
-        const {name, nip, city, street, info, hasInvoice} = customerInput;
+        const {name, nip, city, street, info, phonenr, selldate, hasInvoice} = customerInput;
         const errors = []
         if(validator.isEmpty(id)){
             errors.push({message: 'ID klienta jest wymagane.'})
@@ -644,7 +658,8 @@ module.exports = {
         }
 
         if(customer.nip != nip){
-            const nipExists = await Customer.findOne({nip: nip})
+            const nipExists = nip ? await Customer.findOne({$and: [{nip: nip},{nip: {$ne : "nie dotyczy"}}]}) : null
+            // const nipExists = await Customer.findOne({nip: nip})
             if(nipExists){
                 const error = new Error('Klient o takim NIPie już istnieje');
                 error.statusCode = 409;
@@ -656,6 +671,8 @@ module.exports = {
         customer.nip = nip;
         customer.city = city;
         customer.street = street;
+        customer.phonenr = phonenr;
+        customer.selldate = selldate;
         customer.info = info;
 
         await customer.save();
@@ -776,13 +793,13 @@ module.exports = {
             throw error;
         }
 
-        product.name = productInput.name;
-        product.quantity = productInput.quantity;
-        product.price_net = productInput.price_net;
-        product.price_gross = productInput.price_gross;
-        product.vat = productInput.vat;
-        product.brand = productInput.brand ;
-        product.model = productInput.model ;
+        product.name = name;
+        product.quantity = quantity;
+        product.price_net = price_net;
+        product.price_gross = price_gross;
+        product.vat = vat;
+        product.brand = brand ;
+        product.model = model ;
 
         await product.save();
 
