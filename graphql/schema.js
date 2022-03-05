@@ -1,4 +1,4 @@
-const { buildSchema } = require('graphql');
+const { buildSchema } = require("graphql");
 
 module.exports = buildSchema(`
     input SignInInputData{
@@ -33,6 +33,7 @@ module.exports = buildSchema(`
     }
     input InvoiceInputData {
         invoice_nr: String!
+        invoice_comment: String
         date: String!
         total_price: Float!
         pay_method: String!
@@ -88,6 +89,7 @@ module.exports = buildSchema(`
     type invoice{
         _id: ID!
         invoice_nr: String!
+        invoice_comment: String
         date: String!
         total_price: Float!
         pay_method: String!
