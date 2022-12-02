@@ -1,10 +1,10 @@
-const soapRequest = require('easy-soap-request');
+const soapRequest = require("easy-soap-request");
 
 //import userkey for soapcall
 // const { soapUserKey } = require('../connect');
 
-let createXml = (action, body, xmlns) =>{
-    return (`
+let createXml = (action, body, xmlns) => {
+  return `
         <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="http://CIS/BIR/PUBL/2014/07" ${xmlns}>
             <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
                 <wsa:To>https://wyszukiwarkaregontest.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc</wsa:To>
@@ -14,77 +14,92 @@ let createXml = (action, body, xmlns) =>{
                 ${body}
             </soap:Body>
         </soap:Envelope>
-    `)
-}
-const url = 'https://wyszukiwarkaregon.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc';
-let sampleHeaders = {'Content-Type': 'application/soap+xml;charset=UTF-8'};
+    `;
+};
+const url = "https://wyszukiwarkaregon.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc";
+let sampleHeaders = { "Content-Type": "application/soap+xml;charset=UTF-8" };
 
 //login to SOAP first.
-let soapAction = 'http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/Zaloguj';
+let soapAction = "http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/Zaloguj";
 let soapBody = `
     <ns:Zaloguj>
-        <ns:pKluczUzytkownika>${process.env.SOAPKEY}</ns:pKluczUzytkownika>
+    <ns:pKluczUzytkownika>fefb7584d2164650b73e</ns:pKluczUzytkownika>
     </ns:Zaloguj>
-`
+    `;
+
+////BELOW PROBABLY WAS REQUIRED BY HEROKU
+// <ns:pKluczUzytkownika>${process.env.SOAPKEY}</ns:pKluczUzytkownika>
+
 exports.soapCall = async (nip) => {
-    return new Promise(async (resolve, reject)=>{
-        let xml = createXml(soapAction, soapBody, '')
-  
-        const { response } = await soapRequest({ url: url, headers: sampleHeaders, xml: xml, timeout: 1000 }); // Optional timeout parameter(milliseconds)
-        const { body } = response;
-        
-        const start = body.indexOf('<ZalogujResult>') + 15;
-        const end = body.indexOf('</ZalogujResult>')
+  return new Promise(async (resolve, reject) => {
+    let xml = createXml(soapAction, soapBody, "");
 
-        const token = body.slice(start, end);
+    const { response } = await soapRequest({
+      url: url,
+      headers: sampleHeaders,
+      xml: xml,
+      timeout: 1000,
+    }); // Optional timeout parameter(milliseconds)
+    const { body } = response;
 
-        if(token){
-            const soapAction2 = 'http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DaneSzukajPodmioty'
-            const soapBody2 = `
+    const start = body.indexOf("<ZalogujResult>") + 15;
+    const end = body.indexOf("</ZalogujResult>");
+
+    const token = body.slice(start, end);
+
+    if (token) {
+      const soapAction2 =
+        "http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DaneSzukajPodmioty";
+      const soapBody2 = `
                 <ns:DaneSzukajPodmioty>
                     <ns:pParametryWyszukiwania>
                         <dat:Nip>${nip}</dat:Nip>
                     </ns:pParametryWyszukiwania>
                 </ns:DaneSzukajPodmioty>
-            `
-            const soapXmlns = 'xmlns:dat="http://CIS/BIR/PUBL/2014/07/DataContract"'
-            
-            const xml = createXml(soapAction2, soapBody2, soapXmlns)
-            
-            sampleHeaders = {...sampleHeaders,'sid': token}
+            `;
+      const soapXmlns = 'xmlns:dat="http://CIS/BIR/PUBL/2014/07/DataContract"';
 
-            const secondCall = await soapRequest({ url: url, headers: sampleHeaders, xml: xml, timeout: 1000 }); // Optional timeout parameter(milliseconds)
-            const data = secondCall.response.body;
+      const xml = createXml(soapAction2, soapBody2, soapXmlns);
 
-            const nameStart = data.indexOf(';Nazwa') + 10;
-            const nameEnd = data.indexOf(';/Nazwa') -3
+      sampleHeaders = { ...sampleHeaders, sid: token };
 
-            const name = data.slice(nameStart, nameEnd);
+      const secondCall = await soapRequest({
+        url: url,
+        headers: sampleHeaders,
+        xml: xml,
+        timeout: 1000,
+      }); // Optional timeout parameter(milliseconds)
+      const data = secondCall.response.body;
 
-            const cityStart = data.indexOf(';Miejscowosc') + 16;
-            const cityEnd = data.indexOf(';/Miejscowosc') -3
+      const nameStart = data.indexOf(";Nazwa") + 10;
+      const nameEnd = data.indexOf(";/Nazwa") - 3;
 
-            const city = data.slice(cityStart, cityEnd);
+      const name = data.slice(nameStart, nameEnd);
 
-            const postalStart = data.indexOf(';KodPocztowy') + 16;
-            const postalEnd = data.indexOf(';/KodPocztowy') -3
-            
-            const postal = data.slice(postalStart, postalEnd);
+      const cityStart = data.indexOf(";Miejscowosc") + 16;
+      const cityEnd = data.indexOf(";/Miejscowosc") - 3;
 
-            const streetStart = data.indexOf(';Ulica') + 14;
-            const streetEnd = data.indexOf(';/Ulica') -3
-            const street = data.slice(streetStart, streetEnd);
+      const city = data.slice(cityStart, cityEnd);
 
-            const nrStart = data.indexOf(';NrNieruchomosci') + 20;
-            const nrEnd = data.indexOf(';/NrNieruchomosci') -3
+      const postalStart = data.indexOf(";KodPocztowy") + 16;
+      const postalEnd = data.indexOf(";/KodPocztowy") - 3;
 
-            const nr = data.slice(nrStart, nrEnd);
+      const postal = data.slice(postalStart, postalEnd);
 
-            resolve({
-                name: name,
-                city: city+', '+postal,
-                street: !data.includes('Ulica /') ? street+' '+nr : nr
-            })
-        }
-    })
+      const streetStart = data.indexOf(";Ulica") + 14;
+      const streetEnd = data.indexOf(";/Ulica") - 3;
+      const street = data.slice(streetStart, streetEnd);
+
+      const nrStart = data.indexOf(";NrNieruchomosci") + 20;
+      const nrEnd = data.indexOf(";/NrNieruchomosci") - 3;
+
+      const nr = data.slice(nrStart, nrEnd);
+
+      resolve({
+        name: name,
+        city: city + ", " + postal,
+        street: !data.includes("Ulica /") ? street + " " + nr : nr,
+      });
+    }
+  });
 };

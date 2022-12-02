@@ -1,4 +1,5 @@
-require("dotenv").config({ path: __dirname + "/.env" });
+//BELOW PROBABLY WAS REQUIRED BY HEROKU
+// require("dotenv").config({ path: __dirname + "/.env" });
 // import crucial packages.
 const express = require("express");
 const mongoose = require("mongoose");
@@ -69,7 +70,11 @@ app.use((error, req, res, next) => {
 
 // start the server
 mongoose
-  .connect(process.env.MONGODB)
+  .connect(
+    "mongodb+srv://ololek:plo@cluster0-0u5ev.mongodb.net/data?retryWrites=true&w=majority"
+  )
+  //BELOW PROBABLY WAS REQUIRED BY HEROKU
+  // .connect(process.env.MONGODB)
   // .connect(process.env.TEST)
   .then((result) => {
     app.listen(port, function () {
