@@ -25,7 +25,8 @@ const authRoutes = require("./routes/auth");
 
 // call the express instance.
 const app = express();
-let port = process.env.PORT || 8080;
+// let port = process.env.PORT || 44789;
+let port = 44789;
 
 app.use(bodyParser.json());
 
